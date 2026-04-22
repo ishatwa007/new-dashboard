@@ -443,9 +443,8 @@ function App() {
       if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
       if(e.key==='1') setPage('analytics');
       if(e.key==='2') setPage('requests');
-      if(e.key==='3') setPage('program');
-      if(e.key==='4') setPage('mentor');
-      if(e.key==='5') setPage('classroom');
+      if(e.key==='3') setPage('mentor');
+      if(e.key==='4') setPage('classroom');
       if(e.key==='t') setTweaksOpen(o=>!o);
     };
     window.addEventListener('keydown',h);
@@ -466,16 +465,6 @@ function App() {
           </>
         )}
         {page==='requests' && unlocked && <RequestsPage pendingCount={pendingCount} setPendingCount={setPendingCount} cohort={cohort} setCohort={setCohort} />}
-        {page==='program' && (
-          <ErrorBoundary>
-            <Header title="Program Health" subtitle="Incidents & insights"
-              cohort={cohort} setCohort={setCohort} compare="Single" setCompare={()=>{}}
-              onRefresh={()=>{}} refreshing={false} showCohortCenter={true} />
-            {typeof ProgramHealth !== 'undefined'
-              ? <ProgramHealth cohort={cohort} />
-              : <div style={{padding:'60px',textAlign:'center',color:'var(--fg-2)'}}>Loading Program Health...</div>}
-          </ErrorBoundary>
-        )}
         {page==='mentor' && !mentorUnlocked && (
           <>
             <Header title="Mentor Tracking" subtitle="Restricted"

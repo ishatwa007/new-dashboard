@@ -8,8 +8,8 @@ window.Sidebar = ({ page, onPage, pendingCount }) => {
       <div className="brand">
         <div className="brand-mark">S</div>
         <div className="brand-text">
-          <div className="brand-title">Insights Dashboard</div>
-          <div className="brand-sub">Onboarding Team</div>
+          <div className="brand-title">Refund Audit</div>
+          <div className="brand-sub">scaler.ops</div>
         </div>
       </div>
 
@@ -24,20 +24,15 @@ window.Sidebar = ({ page, onPage, pendingCount }) => {
         <span>Requests</span>
         {pendingCount ? <span className="nav-badge">{pendingCount}</span> : <span className="nav-kbd">2</span>}
       </div>
-      <div className={"nav-item " + (page === 'program' ? 'active' : '')} onClick={() => onPage('program')}>
-        <Icon name="book" className="ico" />
-        <span>Overview</span>
-        <span className="nav-kbd">3</span>
-      </div>
       <div className={"nav-item " + (page === 'mentor' ? 'active' : '')} onClick={() => onPage('mentor')}>
         <Icon name="requests" className="ico" />
         <span>Mentor</span>
-        <span className="nav-kbd">4</span>
+        <span className="nav-kbd">3</span>
       </div>
       <div className={"nav-item " + (page === 'classroom' ? 'active' : '')} onClick={() => onPage('classroom')}>
         <Icon name="graph" className="ico" />
         <span>Classroom</span>
-        <span className="nav-kbd">5</span>
+        <span className="nav-kbd">4</span>
       </div>
 
       <div className="nav-section-label" style={{ marginTop: 'auto' }}></div>
