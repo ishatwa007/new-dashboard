@@ -287,17 +287,18 @@ function AnalyticsPage() {
 }
 
 // ── Requests Page ──────────────────────────────────────────────────────────
-function RequestsPage({ pendingCount, setPendingCount }) {
+function RequestsPage({ pendingCount, setPendingCount, cohort, setCohort }) {
   const [rowsState, setRowsState]       = useState((window.MOCK && window.MOCK.approvals) || []);
-  const [filters, setFilters]           = useState({cohort:'april2026',type:'all',status:'All',lsm:'all',days:'all'});
+  const [filters, setFilters]           = useState({cohort: cohort?.id || 'april2026',type:'all',status:'All',lsm:'all',days:'all'});
   const [selected, setSelected]         = useState(null);
   const [confirmModal, setConfirmModal] = useState(null);
   const [toast, setToast]               = useState(null);
   const [loadingReqs, setLoadingReqs]   = useState(true);
 
   useEffect(() => {
+    const cohortId = cohort?.id || 'april2026';
     setLoadingReqs(true);
-    window.API.getRequests('april2026').then(data => {
+    window.API.getRequests(cohortId).then(data => {
       if (data?.requests?.length > 0) {
         setRowsState(data.requests.map(r => ({
           ...r, raised: new Date(r.raised),
@@ -306,7 +307,7 @@ function RequestsPage({ pendingCount, setPendingCount }) {
         })));
       }
     }).catch(()=>{}).finally(()=>setLoadingReqs(false));
-  }, []);
+  }, [cohort?.id]);
 
   useEffect(() => {
     setPendingCount(rowsState.filter(r=>r.status==='Pending'||r.status==='Under Review').length);
@@ -342,9 +343,9 @@ function RequestsPage({ pendingCount, setPendingCount }) {
   return (
     <>
       <Header title="Requests & Approvals" subtitle="Manager queue"
-        cohort={((window.MOCK && window.MOCK.cohorts) || [{label:'Apr 2026'}])[0]} setCohort={()=>{}}
+        cohort={cohort} setCohort={setCohort}
         compare="Single" setCompare={()=>{}}
-        onRefresh={()=>{}} refreshing={false} showCohortCenter={false} />
+        onRefresh={()=>{}} refreshing={false} showCohortCenter={true} />
       <ReqFilterBar filters={{...filters,_count:filtered.length}} setFilters={setFilters} />
       <ReqStrip rows={rowsState} />
       <div className="content">
@@ -443,47 +444,47 @@ function App() {
         {page==='requests' && !unlocked && (
           <>
             <Header title="Requests & Approvals" subtitle="Restricted"
-              cohort={{label:'Apr 2026'}} setCohort={()=>{}} compare="Single" setCompare={()=>{}}
-              onRefresh={()=>{}} refreshing={false} showCohortCenter={false} />
+              cohort={cohort} setCohort={setCohort} compare="Single" setCompare={()=>{}}
+              onRefresh={()=>{}} refreshing={false} showCohortCenter={true} />
             <PasswordGate onUnlock={()=>{setUnlocked(true);sessionStorage.setItem('req-unlocked','1');}} />
           </>
         )}
-        {page==='requests' && unlocked && <RequestsPage pendingCount={pendingCount} setPendingCount={setPendingCount} />}
+        {page==='requests' && unlocked && <RequestsPage pendingCount={pendingCount} setPendingCount={setPendingCount} cohort={cohort} setCohort={setCohort} />}
         {page==='program' && (
           <ErrorBoundary>
             <Header title="Program Health" subtitle="Incidents & insights"
-              cohort={{label:'Apr 2026'}} setCohort={()=>{}} compare="Single" setCompare={()=>{}}
-              onRefresh={()=>{}} refreshing={false} showCohortCenter={false} />
+              cohort={cohort} setCohort={setCohort} compare="Single" setCompare={()=>{}}
+              onRefresh={()=>{}} refreshing={false} showCohortCenter={true} />
             {typeof ProgramHealth !== 'undefined'
-              ? <ProgramHealth cohort={{id:'april2026',label:'April 2026'}} />
+              ? <ProgramHealth cohort={cohort} />
               : <div style={{padding:'60px',textAlign:'center',color:'var(--fg-2)'}}>Loading Program Health...</div>}
           </ErrorBoundary>
         )}
         {page==='mentor' && !mentorUnlocked && (
           <>
             <Header title="Mentor Tracking" subtitle="Restricted"
-              cohort={{label:'Apr 2026'}} setCohort={()=>{}} compare="Single" setCompare={()=>{}}
-              onRefresh={()=>{}} refreshing={false} showCohortCenter={false} />
+              cohort={cohort} setCohort={setCohort} compare="Single" setCompare={()=>{}}
+              onRefresh={()=>{}} refreshing={false} showCohortCenter={true} />
             <PasswordGate onUnlock={()=>{setMentorUnlocked(true);sessionStorage.setItem('mentor-unlocked','1');}} />
           </>
         )}
         {page==='mentor' && mentorUnlocked && (
           <ErrorBoundary>
             <Header title="Mentor Tracking" subtitle="No-shows, repeat offenders & sessions"
-              cohort={{label:'Apr 2026'}} setCohort={()=>{}} compare="Single" setCompare={()=>{}}
-              onRefresh={()=>{}} refreshing={false} showCohortCenter={false} />
+              cohort={cohort} setCohort={setCohort} compare="Single" setCompare={()=>{}}
+              onRefresh={()=>{}} refreshing={false} showCohortCenter={true} />
             {typeof MentorPage !== 'undefined'
-              ? <MentorPage cohort={{id:'april2026',label:'April 2026'}} />
+              ? <MentorPage cohort={cohort} />
               : <div style={{padding:'60px',textAlign:'center',color:'var(--fg-2)'}}>Loading Mentor page...</div>}
           </ErrorBoundary>
         )}
         {page==='classroom' && (
           <ErrorBoundary>
             <Header title="Classroom" subtitle="Batch ratings, low raters & persona"
-              cohort={{label:'Apr 2026'}} setCohort={()=>{}} compare="Single" setCompare={()=>{}}
-              onRefresh={()=>{}} refreshing={false} showCohortCenter={false} />
+              cohort={cohort} setCohort={setCohort} compare="Single" setCompare={()=>{}}
+              onRefresh={()=>{}} refreshing={false} showCohortCenter={true} />
             {typeof ClassroomPage !== 'undefined'
-              ? <ClassroomPage cohort={{id:'april2026',label:'April 2026'}} />
+              ? <ClassroomPage cohort={cohort} />
               : <div style={{padding:'60px',textAlign:'center',color:'var(--fg-2)'}}>Loading Classroom...</div>}
           </ErrorBoundary>
         )}
