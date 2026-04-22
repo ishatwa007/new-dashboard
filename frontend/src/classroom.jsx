@@ -81,6 +81,8 @@ function ClassroomPage({ cohort }) {
   const [search, setSearch] = useCR('');
   const [batchFilter, setBatchFilter] = useCR('all');
   const [tab, setTab] = useCR('overview');
+  const [selLowClass, setSelLowClass] = useCR(1);   // selected class in Low Raters tab
+  const [selMissedClass, setSelMissedClass] = useCR(1); // selected class in Missed tab
 
   const loadData = useCRCB(async () => {
     setLoading(true);
@@ -401,7 +403,7 @@ function ClassroomPage({ cohort }) {
               groupMap[`${g.batch}||${g.class_num}`] = g;
             });
 
-            const [selClass, setSelClass] = useCR(() => activeCns[0] || 1);
+            const selClass = selLowClass; const setSelClass = setSelLowClass;
 
             const selectedLearners = (byClass[selClass] && byClass[selClass].learners) || [];
             const byBatchForClass = {};
@@ -678,7 +680,7 @@ function ClassroomPage({ cohort }) {
             });
             const batchList = Object.values(batchMap).sort((a,b) => b.total - a.total);
 
-            const [selClass, setSelClass] = useCR(() => activeCns[0] || 1);
+            const selClass = selMissedClass; const setSelClass = setSelMissedClass;
             const selectedMissed = (byClass[selClass] && filteredMissed.filter(m => Number(m.class_num) === selClass)) || [];
             const byBatchForClass = {};
             selectedMissed.forEach(m => {
