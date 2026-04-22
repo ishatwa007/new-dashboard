@@ -124,12 +124,8 @@ function MentorPage({ cohort }) {
     setLoading(true);
     setError(null);
     try {
-      const cohortId = cohort?.id || 'april2026';
-      const res = await fetch(
-        `${window.API_BASE || 'http://localhost:8000'}/api/mentor/noshows/${cohortId}`
-      );
-      const json = await res.json();
-      setData(json);
+      const res = await window.API.getMentorNoshows(cohort);
+      setData(res);
     } catch(e) {
       setError(e.message);
     } finally {
