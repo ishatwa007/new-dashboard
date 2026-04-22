@@ -47,14 +47,18 @@ function transformAnalytics(api) {
   const k = api.kpis;
 
   const kpis = {
-    sales:           k.total       || 0,
-    gtn:             k.gtn         || 0,
-    refundRate:      k.pct_req_c   || k.pct_c || 0,
-    refundsComplete: k.refunded    || k.ref_c  || 0,
-    refundsPending:  k.under_ret   || 0,
-    preMng:          k.pre_mng     || 0,
-    fecRefunds:      k.fec_refunds || 0,
-    probableConverted: k.probable_total || 0,
+    sales:            k.total             || 0,
+    gtn:              k.gtn               || 0,
+    complete:         k.complete          || 0,
+    pending:          k.pending           || 0,
+    pctComplete:      k.pct_complete      || 0,
+    refRateTotal:     k.refund_rate_total || k.pct_total || 0,
+    refRateComplete:  k.refund_rate_complete || k.pct_c || 0,
+    refundsComplete:  k.refunded          || k.ref_c  || 0,
+    refundsPending:   k.under_ret         || 0,
+    preMng:           k.pre_mng           || 0,
+    fecRefunds:       k.fec_refunds       || 0,
+    probableConverted: k.probable_total   || 0,
   };
 
   const programs = (api.programs || []).map(p => ({
