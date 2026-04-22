@@ -30,6 +30,7 @@ from services.lsm_loader import (
 )
 from services.classifier import classify_request
 from services.program_health import router as program_router, init as init_program, set_funnel_lookup
+from services.mentor_loader import init_mentor, load_noshows
 
 logging.basicConfig(
     level=logging.INFO,
@@ -95,6 +96,7 @@ async def lifespan(app: FastAPI):
     # Initialize Program Health with shared client
     try:
         init_program(_get_gc(), SHEET_LSM_ID)
+        init_mentor(_get_gc())
     except Exception as e:
         logger.warning(f"Program Health init failed: {e}")
     yield
@@ -328,6 +330,20 @@ async def classify_req(body: ClassifyRequest):
     except Exception as e:
         logger.error(f"classify error: {e}")
         raise HTTPException(500, str(e))
+
+
+# =============================================================================
+# PAGE 4: MENTOR NO SHOWS
+# =============================================================================
+
+@app.get("/api/mentor/noshows/{cohort_id}")
+async def get_mentor_noshows(cohort_id: str):
+    try:
+        data = load_noshows(cohort_id)
+        return data
+    except Exception as e:
+        logger.error(f"mentor noshows error: {e}")
+        return {"error": str(e), "total": 0, "mentor_list": [], "mentee_list": []}
 
 
 # =============================================================================

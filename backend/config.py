@@ -11,6 +11,7 @@ load_dotenv()
 SHEET_FUNNEL_ID   = os.getenv("SHEET_FUNNEL_ID",   "1FSyE9GXB7yrWZ6DVElzNykcnlGr7bYEY3c5k_fs1NV4")
 SHEET_PERSONA_ID  = os.getenv("SHEET_PERSONA_ID",  "1pgf3eruMcWCDWIZBeDzt1MPm75w0dVyhx4OAvJTj-ls")
 SHEET_LSM_ID      = os.getenv("SHEET_LSM_ID",      "1-83qFsRBEXGQGyHPdmmhbd9Gx1aACSRlM7OxHtRnE9w")
+SHEET_MENTOR_ID   = os.getenv("SHEET_MENTOR_ID",   "1uT_vHMTM4s4TNIPhedB30MaggWRpbgX1LkqCQlbtqwI")
 
 # Post Sales Tracker — one sheet per cohort.
 # Add new env vars each month: SHEET_POSTSALES_MAY2026=sheet_id, etc.

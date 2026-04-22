@@ -90,6 +90,9 @@ window.API = (function () {
   const getProgramHealth = (cohort = {id: 'april2026'}) =>
     get(`/api/program/health?cohort=${encodeURIComponent(cohort.id || cohort || 'april2026')}`);
 
+  const getMentorNoshows = (cohort = {id: 'april2026'}) =>
+    get(`/api/mentor/noshows/${encodeURIComponent(cohort.id || cohort || 'april2026')}`);
+
   const resolveIncident = (id, email, notes) =>
     post('/api/program/resolve', {
       incident_id: id,
@@ -114,7 +117,7 @@ window.API = (function () {
     // page 2
     getRequests, approveRequest, rejectRequest, classifyRequest,
     // page 3
-    getProgramHealth, resolveIncident, escalateIncident,
+    getProgramHealth, resolveIncident, escalateIncident, getMentorNoshows,
     // misc
     health,
   };

@@ -80,7 +80,7 @@ function ClassroomPage({ cohort }) {
   const [loading, setLoading] = useCR(true);
   const [search, setSearch] = useCR('');
   const [batchFilter, setBatchFilter] = useCR('all');
-  const [tab, setTab] = useCR('overview');
+  const [tab, setTab] = useCR('ratings');
   const [selLowClass, setSelLowClass] = useCR(1);   // selected class in Low Raters tab
   const [selMissedClass, setSelMissedClass] = useCR(1); // selected class in Missed tab
 
@@ -165,16 +165,13 @@ function ClassroomPage({ cohort }) {
 
   // Stats
   const totalLowCount = lowRaters.length;
-  const totalMissedCount = classMissed.length;
   const watchBatches = classRatings.filter(cr =>
     Object.values(cr.classes).some(c => c.flag === 'WATCH' || c.flag === 'LOW')
   ).length;
 
   const TABS = [
-    { id: 'overview',   label: 'Overview',     icon: '\u{1F4CA}' },
     { id: 'ratings',    label: 'Batch Ratings', icon: '\u2B50' },
     { id: 'lowraters',  label: 'Low Raters',    icon: '\u{1F534}', badge: totalLowCount > 0 ? totalLowCount : null },
-    { id: 'missed',     label: 'Class Missed',  icon: '\u{1F6AB}', badge: totalMissedCount > 0 ? totalMissedCount : null },
   ];
 
   return (
