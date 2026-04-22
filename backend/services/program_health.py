@@ -327,33 +327,74 @@ def _safe_tab(wb, name):
 
 def parse_incidents(raw):
     """
-    Program Incidents tab layout:
-    raw[0] = merged title row
-    raw[1] = section headers (Incident Details | Resolution | Escalation)
-    raw[2] = column headers (Date | Batch | Class # | ...)
-    raw[3:] = data rows
+    Program Incidents tab layout (updated):
+    raw[0] = section headers (Incident Details | Resolution & Escalation)
+    raw[1] = column headers (Date | Batch | Class # | Incident Type | Mentor Email |
+             Mentee Email | Instructor Name | Details | Reported By | Status |
+             Resolution Notes | Escalated To | Escalation Date | Manager Remarks)
+    raw[2:] = data rows
+
+    Column index (0-based):
+    0=Date, 1=Batch, 2=Class#, 3=Incident Type, 4=Mentor Email, 5=Mentee Email,
+    6=Instructor Name, 7=Details, 8=Reported By, 9=Status, 10=Resolution Notes,
+    11=Escalated To, 12=Escalation Date, 13=Manager Remarks
     """
-    if len(raw) < 4:
+    if len(raw) < 3:
         return []
+
+    # Auto-detect data start: find row where col A looks like a date or col D has incident type
+    data_start = 2  # default: new layout (2 header rows)
+    if len(raw) >= 4:
+        # If raw[0] looks like a title (long string, not "Incident Details"), use old 3-row header
+        first_cell = raw[0][0].strip() if raw[0] else ""
+        if first_cell and first_cell not in ("Incident Details", "Date", ""):
+            if len(first_cell) > 20:  # long title row
+                data_start = 3
+                log.info("parse_incidents: detected old 3-header layout")
+
     out = []
-    for i, row in enumerate(raw[3:], start=4):
+    for i, row in enumerate(raw[data_start:], start=data_start + 1):
         if len(row) < 4 or not any(c.strip() for c in row[:6]):
             continue
-        out.append({
-            "id": i,
-            "date": row[0].strip() if len(row) > 0 else "",
-            "batch": row[1].strip() if len(row) > 1 else "",
-            "class_num": row[2].strip() if len(row) > 2 else "",
-            "incident_type": row[3].strip() if len(row) > 3 else "",
-            "instructor_name": row[4].strip() if len(row) > 4 else "",
-            "details": row[5].strip() if len(row) > 5 else "",
-            "reported_by": row[6].strip() if len(row) > 6 else "",
-            "status": row[7].strip() if len(row) > 7 else "Open",
-            "resolution_notes": row[8].strip() if len(row) > 8 else "",
-            "escalated_to": row[9].strip() if len(row) > 9 else "",
-            "escalation_date": row[10].strip() if len(row) > 10 else "",
-            "manager_remarks": row[11].strip() if len(row) > 11 else "",
-        })
+
+        if data_start == 3:
+            # Old layout (backwards compat)
+            out.append({
+                "id": i,
+                "date": row[0].strip() if len(row) > 0 else "",
+                "batch": row[1].strip() if len(row) > 1 else "",
+                "class_num": row[2].strip() if len(row) > 2 else "",
+                "incident_type": row[3].strip() if len(row) > 3 else "",
+                "mentor_email": "",
+                "mentee_email": "",
+                "instructor_name": row[4].strip() if len(row) > 4 else "",
+                "details": row[5].strip() if len(row) > 5 else "",
+                "reported_by": row[6].strip() if len(row) > 6 else "",
+                "status": row[7].strip() if len(row) > 7 else "Open",
+                "resolution_notes": row[8].strip() if len(row) > 8 else "",
+                "escalated_to": row[9].strip() if len(row) > 9 else "",
+                "escalation_date": row[10].strip() if len(row) > 10 else "",
+                "manager_remarks": row[11].strip() if len(row) > 11 else "",
+            })
+        else:
+            # New layout
+            out.append({
+                "id": i,
+                "date": row[0].strip() if len(row) > 0 else "",
+                "batch": row[1].strip() if len(row) > 1 else "",
+                "class_num": row[2].strip() if len(row) > 2 else "",
+                "incident_type": row[3].strip() if len(row) > 3 else "",
+                "mentor_email": row[4].strip() if len(row) > 4 else "",
+                "mentee_email": row[5].strip() if len(row) > 5 else "",
+                "instructor_name": row[6].strip() if len(row) > 6 else "",
+                "details": row[7].strip() if len(row) > 7 else "",
+                "reported_by": row[8].strip() if len(row) > 8 else "",
+                "status": row[9].strip() if len(row) > 9 else "Open",
+                "resolution_notes": row[10].strip() if len(row) > 10 else "",
+                "escalated_to": row[11].strip() if len(row) > 11 else "",
+                "escalation_date": row[12].strip() if len(row) > 12 else "",
+                "manager_remarks": row[13].strip() if len(row) > 13 else "",
+            })
     return out
 
 
@@ -641,9 +682,10 @@ def get_program_health(cohort: str = "april2026"):
 
     # Classroom data — try Post Sales tracker first, fall back to LSM Class Tracker
     postsales_id = get_postsales_id(cohort)
+    class_missed = []
     if postsales_id and _gc:
         log.info(f"Loading classroom from Post Sales tracker for {cohort}")
-        class_ratings, low_raters, instructor_map = load_postsales_classroom(_gc, postsales_id)
+        class_ratings, low_raters, instructor_map, class_missed = load_postsales_classroom(_gc, postsales_id)
         if not class_ratings:
             log.warning("Post Sales classroom empty, falling back to LSM Class Tracker")
             raw_tracker = _safe_tab(wb, "Class Tracker")
@@ -700,6 +742,7 @@ def get_program_health(cohort: str = "april2026"):
         "low_raters": low_raters,
         "low_raters_by_batch": low_raters_by_batch,
         "instructor_map": instructor_map,
+        "class_missed": class_missed,
         "data_source": "post_sales" if postsales_id else "lsm",
     }
     return _sanitize(result)
@@ -725,9 +768,9 @@ def resolve_incident(req: ResolveRequest):
         now = datetime.now().strftime("%d/%m/%Y %H:%M")
         note_text = f"{req.notes} [Resolved by {req.resolver_email} on {now}]"
 
-        # Col H=8 (Status), Col I=9 (Resolution Notes) — 1-indexed
-        ws.update_cell(req.incident_id, 8, "Resolved")
-        ws.update_cell(req.incident_id, 9, note_text)
+        # New layout: J=col10 (Status), K=col11 (Resolution Notes)
+        ws.update_cell(req.incident_id, 10, "Resolved")
+        ws.update_cell(req.incident_id, 11, note_text)
 
         row = ws.row_values(req.incident_id)
         batch = row[1] if len(row) > 1 else "?"
@@ -754,11 +797,11 @@ def escalate_incident(req: EscalateRequest):
         now = datetime.now().strftime("%d/%m/%y")
         note_text = f"{req.reason} [Escalated by {req.escalator_email} on {now}]"
 
-        # Col H=8 (Status), Col I=9 (Resolution Notes), Col J=10 (Escalated To), Col K=11 (Escalation Date)
-        ws.update_cell(req.incident_id, 8, "Escalated")
-        ws.update_cell(req.incident_id, 9, note_text)
-        ws.update_cell(req.incident_id, 10, req.escalate_to)
-        ws.update_cell(req.incident_id, 11, now)
+        # New layout: J=col10 (Status), K=col11 (Resolution Notes), L=col12 (Escalated To), M=col13 (Escalation Date)
+        ws.update_cell(req.incident_id, 10, "Escalated")
+        ws.update_cell(req.incident_id, 11, note_text)
+        ws.update_cell(req.incident_id, 12, req.escalate_to)
+        ws.update_cell(req.incident_id, 13, now)
 
         row = ws.row_values(req.incident_id)
         batch = row[1] if len(row) > 1 else "?"

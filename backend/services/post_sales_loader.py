@@ -38,14 +38,14 @@ C_PSA     = 4   # E = Primary Owner Email
 C_PAY     = 6   # G = Payment Status
 C_REFUND  = 7   # H = Refund Status
 
-# Per-class columns: (rating, live_att, overall_att, psp)
+# Per-class columns: (rating, live_att, overall_att, psp, connect, notes)
 CLASS_COLS = {
-    1: (12, 13, 14, 15),   # M, N, O, P
-    2: (18, 19, 20, 21),   # S, T, U, V
-    3: (24, 25, 26, 27),   # Y, Z, AA, AB
-    4: (30, 31, 32, None), # AE, AF, AG (no live att col)
-    5: (35, None, 36, 37), # AJ, -, AK, AL
-    6: (38, None, None, None),  # AM only
+    1: (12, 13, 14, 15, 16, 17),   # M, N, O, P, Q, R
+    2: (18, 19, 20, 21, 22, 23),   # S, T, U, V, W, X
+    3: (24, 25, 26, 27, 28, 29),   # Y, Z, AA, AB, AC, AD
+    4: (30, 31, 32, None, 33, 34), # AE, AF, AG, -, AH, AI
+    5: (35, None, 36, 37, 44, 45), # AJ, -, AK, AL, AS, AT
+    6: (38, None, 39, 40, None, None),  # AM, -, AN, AO, -, -
 }
 
 # Ratings Sheet tab columns (0-based)
@@ -85,16 +85,18 @@ def _sale_status(pay_val, refund_val) -> str:
     return "PENDING"
 
 
-def parse_classes_tab(raw: list) -> tuple[list, list]:
+def parse_classes_tab(raw: list) -> tuple[list, list, list]:
     """
     Parse the Classes tab from Post Sales tracker.
-    Returns (class_ratings, low_raters) in same format as program_health.parse_class_tracker.
+    Returns (class_ratings, low_raters, class_missed).
+    class_missed = learners with live_att == 0 for a class.
     """
     if len(raw) < 3:
-        return [], []
+        return [], [], []
 
     batch_data = {}
     low_raters = []
+    class_missed = []
 
     for row in raw[CLASSES_DATA_START:]:
         if not row or len(row) < 5:
@@ -111,6 +113,7 @@ def parse_classes_tab(raw: list) -> tuple[list, list]:
         if not batch or batch.lower() in ("batch", "segment", ""):
             continue
 
+        name = _safe_str(row[0]) if len(row) > 0 else ""
         psa = _safe_str(row[C_PSA]) if C_PSA < len(row) else ""
         pay = row[C_PAY] if C_PAY < len(row) else ""
         ref = row[C_REFUND] if C_REFUND < len(row) else ""
@@ -122,21 +125,24 @@ def parse_classes_tab(raw: list) -> tuple[list, list]:
                 for cn in range(1, 7)
             }
 
-        for cn, (r_col, live_col, overall_col, psp_col) in CLASS_COLS.items():
+        for cn, (r_col, live_col, overall_col, psp_col, connect_col, notes_col) in CLASS_COLS.items():
             # Rating
             r_val = _safe_float(row[r_col] if r_col < len(row) else None, cap=5)
             if r_val is not None:
                 batch_data[batch][cn]["ratings"].append(r_val)
                 if r_val <= 3:
-                    notes = ""
+                    notes = _safe_str(row[notes_col] if notes_col is not None and notes_col < len(row) else "")
+                    connect = _safe_str(row[connect_col] if connect_col is not None and connect_col < len(row) else "")
+                    lsm_notes = f"[{connect}] {notes}".strip(" []") if connect and notes else notes or connect
                     low_raters.append({
                         "email": email,
+                        "name": name,
                         "batch": batch,
                         "psa": psa,
                         "sale_status": sale_status,
                         "class_num": cn,
                         "rating": r_val,
-                        "lsm_notes": notes,
+                        "lsm_notes": lsm_notes,
                         "noshow_reason": "",
                         "persona": "",
                         "ctc": "",
@@ -148,6 +154,25 @@ def parse_classes_tab(raw: list) -> tuple[list, list]:
                 live = _safe_float(row[live_col] if live_col < len(row) else None)
                 if live is not None:
                     batch_data[batch][cn]["atts"].append(live)
+                    # Class missed = live attendance is 0
+                    if live == 0:
+                        notes = _safe_str(row[notes_col] if notes_col is not None and notes_col < len(row) else "")
+                        connect = _safe_str(row[connect_col] if connect_col is not None and connect_col < len(row) else "")
+                        psa_note = f"[{connect}] {notes}".strip(" []") if connect and notes else notes or connect
+                        class_missed.append({
+                            "email": email,
+                            "name": name,
+                            "batch": batch,
+                            "psa": psa,
+                            "sale_status": sale_status,
+                            "class_num": cn,
+                            "live_att": live,
+                            "overall_att": _safe_float(row[overall_col] if overall_col is not None and overall_col < len(row) else None),
+                            "connect_status": connect,
+                            "notes": psa_note,
+                            "persona": "",
+                            "ctc": "",
+                        })
 
             # Overall attendance
             if overall_col is not None:
@@ -174,10 +199,12 @@ def parse_classes_tab(raw: list) -> tuple[list, list]:
             avg_oa = round(sum(d["overall_atts"]) / len(d["overall_atts"]), 1) if d["overall_atts"] else None
             avg_p = round(sum(d["psps"]) / len(d["psps"]), 1) if d["psps"] else None
             low_c = sum(1 for r in d["ratings"] if r <= 3)
+            missed_c = sum(1 for m in class_missed if m["batch"] == batch and m["class_num"] == cn)
             entry["classes"][str(cn)] = {
                 "avg_rating": avg_r,
                 "total_rated": len(d["ratings"]),
                 "low_count": low_c,
+                "missed_count": missed_c,
                 "avg_live_att": avg_a,
                 "avg_overall_att": avg_oa,
                 "avg_psp": avg_p,
@@ -186,7 +213,7 @@ def parse_classes_tab(raw: list) -> tuple[list, list]:
         if entry["classes"]:
             class_ratings.append(entry)
 
-    return class_ratings, low_raters
+    return class_ratings, low_raters, class_missed
 
 
 def parse_ratings_sheet_tab(raw: list) -> dict:
@@ -259,20 +286,20 @@ def parse_introductory_week_tab(raw: list) -> list:
     return rows
 
 
-def load_postsales_classroom(gc, sheet_id: str) -> tuple[list, list, dict]:
+def load_postsales_classroom(gc, sheet_id: str) -> tuple[list, list, dict, list]:
     """
     Main entry point. Load classroom data from Post Sales tracker.
-    Returns (class_ratings, low_raters, instructor_map).
+    Returns (class_ratings, low_raters, instructor_map, class_missed).
     """
     if not gc or not sheet_id:
         log.warning("Post Sales loader: no gc or sheet_id provided")
-        return [], [], {}
+        return [], [], {}, []
 
     try:
         wb = gc.open_by_key(sheet_id)
     except Exception as e:
         log.error(f"Post Sales loader: failed to open sheet {sheet_id[:12]}...: {e}")
-        return [], [], {}
+        return [], [], {}, []
 
     def _safe_tab(name):
         try:
@@ -284,15 +311,15 @@ def load_postsales_classroom(gc, sheet_id: str) -> tuple[list, list, dict]:
     raw_classes = _safe_tab("Classes")
     raw_ratings = _safe_tab("Ratings Sheet")
 
-    class_ratings, low_raters = parse_classes_tab(raw_classes)
+    class_ratings, low_raters, class_missed = parse_classes_tab(raw_classes)
     instructor_map = parse_ratings_sheet_tab(raw_ratings)
 
     # Attach instructor names to class_ratings
     for cr in class_ratings:
         cr["instructor"] = instructor_map.get(cr["batch"], "")
 
-    log.info(f"Post Sales loader: {len(class_ratings)} batches, {len(low_raters)} low raters")
-    return class_ratings, low_raters, instructor_map
+    log.info(f"Post Sales loader: {len(class_ratings)} batches, {len(low_raters)} low raters, {len(class_missed)} missed")
+    return class_ratings, low_raters, instructor_map, class_missed
 
 
 def load_postsales_intro_week(gc, sheet_id: str) -> list:
