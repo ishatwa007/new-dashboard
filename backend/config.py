@@ -12,6 +12,7 @@ SHEET_FUNNEL_ID   = os.getenv("SHEET_FUNNEL_ID",   "1FSyE9GXB7yrWZ6DVElzNykcnlGr
 SHEET_PERSONA_ID  = os.getenv("SHEET_PERSONA_ID",  "1pgf3eruMcWCDWIZBeDzt1MPm75w0dVyhx4OAvJTj-ls")
 SHEET_LSM_ID      = os.getenv("SHEET_LSM_ID",      "1-83qFsRBEXGQGyHPdmmhbd9Gx1aACSRlM7OxHtRnE9w")
 SHEET_MENTOR_ID   = os.getenv("SHEET_MENTOR_ID",   "1uT_vHMTM4s4TNIPhedB30MaggWRpbgX1LkqCQlbtqwI")
+SHEET_OMS_ID      = os.getenv("SHEET_OMS_ID",      "140kH_-IoWYKy0143m1vjnmL6ti45zxjo9OZvvm3XPRc")
 
 # Post Sales Tracker — one sheet per cohort.
 # Add new env vars each month: SHEET_POSTSALES_MAY2026=sheet_id, etc.
@@ -44,8 +45,12 @@ def get_postsales_id(cohort_id: str) -> str | None:
 
 # API Keys
 GROQ_API_KEY      = os.getenv("GROQ_API_KEY", "")
+OPENAI_API_KEY    = os.getenv("OPENAI_API_KEY", "")
 DEEPSEEK_API_KEY  = os.getenv("DEEPSEEK_API_KEY", "")
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "")
+
+# Which AI provider to use: "openai" or "groq"
+AI_PROVIDER       = os.getenv("AI_PROVIDER", "openai" if os.getenv("OPENAI_API_KEY") else "groq")
 
 # Server settings
 FRONTEND_URL      = os.getenv("FRONTEND_URL", "*")

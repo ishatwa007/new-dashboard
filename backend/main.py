@@ -25,6 +25,7 @@ from services.sheets_loader import (
     load_funnel_df, load_persona_sheet, get_available_cohorts, _get_client,
 )
 from services.analytics_engine import build_cohort_analytics, compute_psas
+from services.oms_loader import init_oms, load_oms_refunds
 from services.lsm_loader import (
     load_requests, approve_request, reject_request, load_dump_summary,
 )
@@ -97,6 +98,7 @@ async def lifespan(app: FastAPI):
     try:
         init_program(_get_gc(), SHEET_LSM_ID)
         init_mentor(_get_gc())
+        init_oms(_get_gc())
     except Exception as e:
         logger.warning(f"Program Health init failed: {e}")
     yield
@@ -186,8 +188,10 @@ async def get_analytics(
         raise HTTPException(503, "Funnel data not yet loaded. Try again shortly.")
 
     loop = asyncio.get_event_loop()
-    persona_df = await loop.run_in_executor(None, load_persona_sheet, cohort_id)
-    analytics = build_cohort_analytics(cohort_id, _state.funnel_df, persona_df)
+    persona_df  = await loop.run_in_executor(None, load_persona_sheet, cohort_id)
+    oms_refunds = await loop.run_in_executor(None, load_oms_refunds, cohort_id)
+    analytics   = build_cohort_analytics(cohort_id, _state.funnel_df, persona_df,
+                                          oms_refunds=oms_refunds)
 
     if not analytics:
         raise HTTPException(404, f"No data found for cohort: {cohort_id}")

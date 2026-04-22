@@ -164,8 +164,12 @@ function AnalyticsPage({ cohort, setCohort }) {
         setRealCohorts(mapped);
         if(window.MOCK && window.MOCK.cohorts){window.MOCK.cohorts.length = 0;
         mapped.slice().reverse().forEach(c => window.MOCK.cohorts.push(c));}
-        const apr = mapped.find(c=>c.id==='april2026');
-        if (apr) setActiveCohort(apr);
+        // Only auto-set cohort if current one isn't in the real list yet
+        const currentIsReal = mapped.find(c => c.id === activeCohort?.id);
+        if (!currentIsReal) {
+          const apr = mapped.find(c=>c.id==='april2026') || mapped[mapped.length - 1];
+          if (apr) setActiveCohort(apr);
+        }
 
         // Build GTN trend from real cohort list
         const trend = mapped.filter(c => c.gtn > 0).map(c => ({
@@ -422,15 +426,6 @@ function App() {
   const [tweaks,setTweaks]         = useState(TWEAK_DEFAULTS);
   const [tweaksOpen,setTweaksOpen] = useState(false);
   const [cohort, setCohort]        = useState(_initCohort);
-
-  // Sync cohort from real API cohorts once loaded
-  useEffect(() => {
-    const apiCohorts = window.MOCK && window.MOCK.cohorts;
-    if (apiCohorts && apiCohorts.length > 0 && cohort.id === 'april2026') {
-      const apr = apiCohorts.find(c => c.id === 'april2026') || apiCohorts[apiCohorts.length - 1];
-      if (apr) setCohort(apr);
-    }
-  }, [window.MOCK && window.MOCK.cohorts && window.MOCK.cohorts.length]);
 
   useEffect(()=>{applyTweaks(tweaks);},[]);
   useEffect(()=>{localStorage.setItem('scaler-page',page);},[page]);

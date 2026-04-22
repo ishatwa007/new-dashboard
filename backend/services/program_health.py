@@ -21,10 +21,16 @@ _slack_url = os.getenv("SLACK_WEBHOOK_URL", "")
 _funnel_lookup = None  # email -> {psa, bda, bdm, avp}
 _funnel_ext_lookup = None  # email -> {persona, ctc, experience, program, batch}
 
-# AI classification
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL = "llama-3.1-8b-instant"
+# AI configuration — prefers OpenAI, falls back to Groq
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+GROQ_API_KEY   = os.getenv("GROQ_API_KEY", "")
+AI_PROVIDER    = os.getenv("AI_PROVIDER", "openai" if OPENAI_API_KEY else "groq")
+
+OPENAI_URL   = "https://api.openai.com/v1/chat/completions"
+OPENAI_MODEL = "gpt-4o-mini"
+GROQ_URL     = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODEL   = "llama-3.1-8b-instant"
+
 _AI_CACHE_DIR = Path("classifier_cache_program")
 _AI_CACHE_DIR.mkdir(exist_ok=True)
 
@@ -57,28 +63,55 @@ def _cache_set(key: str, value):
         pass
 
 
-def _groq_call(system: str, user: str, max_tokens: int = 80) -> Optional[str]:
-    if not GROQ_API_KEY:
-        return None
-    try:
-        import httpx
-        r = httpx.post(
-            GROQ_URL,
-            headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
-            json={
-                "model": GROQ_MODEL,
-                "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
-                "temperature": 0,
-                "max_tokens": max_tokens,
-            },
-            timeout=12.0,
-        )
-        if r.status_code == 200:
-            return r.json()["choices"][0]["message"]["content"].strip()
-        log.warning(f"Groq {r.status_code}: {r.text[:160]}")
-    except Exception as e:
-        log.warning(f"Groq error: {e}")
+def _ai_call(system: str, user: str, max_tokens: int = 80) -> Optional[str]:
+    """Unified AI caller — uses OpenAI if key set, falls back to Groq."""
+    import httpx
+
+    # Try OpenAI first
+    if OPENAI_API_KEY and AI_PROVIDER in ("openai", "auto"):
+        try:
+            r = httpx.post(
+                OPENAI_URL,
+                headers={"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"},
+                json={
+                    "model": OPENAI_MODEL,
+                    "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+                    "temperature": 0,
+                    "max_tokens": max_tokens,
+                },
+                timeout=15.0,
+            )
+            if r.status_code == 200:
+                return r.json()["choices"][0]["message"]["content"].strip()
+            log.warning(f"OpenAI {r.status_code}: {r.text[:160]}")
+        except Exception as e:
+            log.warning(f"OpenAI error: {e}")
+
+    # Fall back to Groq
+    if GROQ_API_KEY:
+        try:
+            r = httpx.post(
+                GROQ_URL,
+                headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                json={
+                    "model": GROQ_MODEL,
+                    "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+                    "temperature": 0,
+                    "max_tokens": max_tokens,
+                },
+                timeout=12.0,
+            )
+            if r.status_code == 200:
+                return r.json()["choices"][0]["message"]["content"].strip()
+            log.warning(f"Groq {r.status_code}: {r.text[:160]}")
+        except Exception as e:
+            log.warning(f"Groq error: {e}")
+
     return None
+
+
+# Keep _groq_call as alias for backward compatibility
+_groq_call = _ai_call
 
 
 # ──────────────────────────────────────────────
