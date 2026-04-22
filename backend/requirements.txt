@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+pydantic
+pandas
+numpy
+gspread
+google-auth
+google-auth-oauthlib
+python-dotenv
+httpx
+python-multipart
