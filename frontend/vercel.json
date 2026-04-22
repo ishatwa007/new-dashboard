@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/Refund Audit Dashboard.html" },
+    { "source": "/(.*)", "destination": "/" }
+  ]
+}
