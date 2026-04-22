@@ -135,6 +135,18 @@ function MentorPage({ cohort }) {
 
   useMTE(() => { loadData(); }, [loadData]);
 
+  const q = search.toLowerCase().trim();
+
+  const filteredMentors = useMTM(() =>
+    (data?.mentor_list || []).filter(m =>
+      !q || m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q)
+    ), [data, q]);
+
+  const filteredMentees = useMTM(() =>
+    (data?.mentee_list || []).filter(m =>
+      !q || m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q)
+    ), [data, q]);
+
   const generateSummary = async (key, sessions) => {
     if (aiSummaries[key] || aiLoading[key]) return;
     const agendas = sessions.map(s => s.agenda).filter(Boolean);
@@ -183,18 +195,6 @@ function MentorPage({ cohort }) {
       </button>
     </div>
   );
-
-  const q = search.toLowerCase().trim();
-
-  const filteredMentors = useMTM(() =>
-    (data.mentor_list || []).filter(m =>
-      !q || m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q)
-    ), [data, q]);
-
-  const filteredMentees = useMTM(() =>
-    (data.mentee_list || []).filter(m =>
-      !q || m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q)
-    ), [data, q]);
 
   const TABS = [
     { id: 'overview', label: 'Overview',         icon: '\u{1F4CA}' },
