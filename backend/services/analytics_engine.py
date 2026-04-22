@@ -61,35 +61,65 @@ def _is_gtn_program(prog: str) -> bool:
 # -- cohort-level KPIs --------------------------------------------------------
 
 def compute_kpis(df: pd.DataFrame) -> dict:
-    total    = len(df)
-    complete = len(df[df["sale_status"] == "COMPLETE"])
-    pending  = len(df[df["sale_status"] == "PENDING"])
+    import datetime
+    today = pd.Timestamp(datetime.date.today())
+
+    total        = len(df)
+    complete     = len(df[df["sale_status"] == "COMPLETE"])
+    pending      = len(df[df["sale_status"] == "PENDING"])
     pct_complete = _safe_pct(complete, total)
 
-    # Refund signal: mentee_status == "Refunded" is the source of truth
-    # Fall back to refunded bool if mentee_status not populated
-    if "mentee_status" in df.columns:
-        is_refunded = df["mentee_status"].str.strip().str.lower() == "refunded"
+    # ── Refund requested (base signal) ───────────────────────────────────────
+    is_req = df["refund_requested"] == True
+    ref_req   = int(is_req.sum())
+    ref_req_c = int((is_req & (df["sale_status"] == "COMPLETE")).sum())
+    ref_p     = int((is_req & (df["sale_status"] == "PENDING")).sum())
+
+    # ── Actually refunded = refund_requested AND retention window closed ──────
+    # Retention window: 14 days from MnG date
+    # If MnG date not available, use refund_req_at + 14 days as fallback
+    # After 14 days: if refunded == True → truly gone, if False → retained
+    def _past_retention(row):
+        mng = row.get("mng_date")
+        req_at = row.get("refund_req_at")
+        anchor = mng if pd.notna(mng) else req_at
+        if pd.isna(anchor):
+            return True  # no date info, assume window closed
+        try:
+            return today >= pd.Timestamp(anchor) + pd.Timedelta(days=14)
+        except Exception:
+            return True
+
+    req_df = df[is_req].copy()
+    if not req_df.empty and "mng_date" in req_df.columns:
+        req_df["window_closed"] = req_df.apply(_past_retention, axis=1)
+        # Truly refunded = window closed AND refunded flag still True
+        truly_refunded_mask = req_df["window_closed"] & (
+            (req_df.get("refunded", pd.Series(False, index=req_df.index)) == True) |
+            (req_df.get("mentee_status", pd.Series("", index=req_df.index))
+             .str.strip().str.lower() == "refunded")
+        )
+        refunded   = int(truly_refunded_mask.sum())
+        refunded_c = int((truly_refunded_mask & (req_df["sale_status"] == "COMPLETE")).sum())
+        # Retained = requested but NOT truly refunded (either window open or refunded=False)
+        retained_c   = int(((~truly_refunded_mask) & (req_df["sale_status"] == "COMPLETE")).sum())
     else:
-        is_refunded = df.get("refunded", pd.Series(False, index=df.index)) == True
+        # Fallback: use refunded bool directly
+        is_ref = (df.get("refunded", pd.Series(False, index=df.index)) == True) | \
+                 (df.get("mentee_status", pd.Series("", index=df.index))
+                  .str.strip().str.lower() == "refunded")
+        refunded   = int((is_req & is_ref).sum())
+        refunded_c = int((is_req & is_ref & (df["sale_status"] == "COMPLETE")).sum())
+        retained_c = ref_req_c - refunded_c
 
-    refunded       = int(is_refunded.sum())
-    refunded_c     = int((is_refunded & (df["sale_status"] == "COMPLETE")).sum())
-
-    # ref_req = anyone who requested (broader set, includes under-retention)
-    ref_req    = int((df["refund_requested"] == True).sum())
-    ref_req_c  = int(((df["refund_requested"] == True) & (df["sale_status"] == "COMPLETE")).sum())
-    under_ret  = ref_req - refunded
-    ref_p      = int(((df["refund_requested"] == True) & (df["sale_status"] == "PENDING")).sum())
-
-    retained_c   = ref_req_c - refunded_c
+    under_ret    = ref_req - refunded
     retained_pct = _safe_pct(retained_c, ref_req_c) if ref_req_c > 0 else 0
 
-    # Refund rates
+    # ── Refund rates ─────────────────────────────────────────────────────────
     refund_rate_total    = _safe_pct(refunded, total)
     refund_rate_complete = _safe_pct(refunded_c, complete)
 
-    # GTN — only for Academy, DSML, DevOps, AIML programs
+    # ── GTN — only for Academy, DSML, DevOps, AIML ───────────────────────────
     if "intake_program" in df.columns:
         gtn_df = df[df["intake_program"].apply(_is_gtn_program)]
     elif "current_program" in df.columns:
@@ -97,10 +127,20 @@ def compute_kpis(df: pd.DataFrame) -> dict:
     else:
         gtn_df = df
 
-    gtn_complete  = len(gtn_df[gtn_df["sale_status"] == "COMPLETE"])
-    gtn_refunded  = 0
-    if "mentee_status" in gtn_df.columns:
-        gtn_refunded = int((gtn_df["mentee_status"].str.strip().str.lower() == "refunded").sum())
+    gtn_complete = len(gtn_df[gtn_df["sale_status"] == "COMPLETE"])
+    gtn_req      = gtn_df["refund_requested"] == True
+    gtn_req_df   = gtn_df[gtn_req].copy()
+    if not gtn_req_df.empty and "mng_date" in gtn_req_df.columns:
+        gtn_req_df["window_closed"] = gtn_req_df.apply(_past_retention, axis=1)
+        gtn_refunded = int((
+            gtn_req_df["window_closed"] & (
+                (gtn_req_df.get("refunded", pd.Series(False, index=gtn_req_df.index)) == True) |
+                (gtn_req_df.get("mentee_status", pd.Series("", index=gtn_req_df.index))
+                 .str.strip().str.lower() == "refunded")
+            )
+        ).sum())
+    else:
+        gtn_refunded = int(gtn_req.sum())
     gtn = _safe_pct(gtn_complete - gtn_refunded, len(gtn_df)) if len(gtn_df) > 0 else 0
 
     # Pre/post MnG
