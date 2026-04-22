@@ -415,7 +415,7 @@ def compute_program_refunds(df: pd.DataFrame) -> list[dict]:
             kpis = _strip_gtn(compute_kpis(sub))
             rows.append({
                 "program":  batch,
-                "key":      batch.lower().replace(" ", "_")[:20],
+                "key":      batch.lower().replace(" ", "_"),
                 "label":    batch,
                 "active":   kpis["total"] - kpis["ref_total"],
                 "refunded": kpis["ref_c"],

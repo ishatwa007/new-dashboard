@@ -591,7 +591,7 @@ window.BatchRefundCard = ({ programRefunds }) => {
           </div>
           <div style={{width:60,textAlign:'right'}}>Rate</div>
         </div>
-        {data.map(d => {
+        {data.map((d, i) => {
           const color = progColors[(d.key||d.label||'').toLowerCase()] || 'var(--indigo)';
           const total = d.total || 0;
           const active = d.active || 0;
@@ -600,8 +600,9 @@ window.BatchRefundCard = ({ programRefunds }) => {
           const aPct = (active/maxTotal)*100;
           const rPct = (refReq/maxTotal)*100;
           const rfPct = (refunded/maxTotal)*100;
+          const uniqueKey = (d.label || d.key || '') + '_' + i;
           return (
-            <div key={d.key||d.label} style={{padding:'8px 14px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:14}}>
+            <div key={uniqueKey} style={{padding:'8px 14px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:14}}>
               <div style={{width:100,display:'flex',alignItems:'center',gap:6}}>
                 <span style={{width:8,height:8,borderRadius:2,background:color,flexShrink:0}} />
                 <span style={{fontSize:11.5,fontWeight:500}}>{d.label}</span>

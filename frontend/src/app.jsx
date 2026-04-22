@@ -414,11 +414,97 @@ function Tweaks({val,onChange,onClose}) {
   );
 }
 
+// ── Global Login Gate ────────────────────────────────────────────────────────
+function LoginGate({ onLogin }) {
+  const [user, setUser]   = useState('');
+  const [pwd, setPwd]     = useState('');
+  const [err, setErr]     = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const USERS = {
+    'scaler':   'ops2026',
+    'ishatwa':  'scaler@123',
+    'chanchal': 'scaler@123',
+    'classroom':'class2026',
+    'program':  'prog2026',
+  };
+
+  const handle = () => {
+    setLoading(true);
+    setTimeout(() => {
+      if (USERS[user.trim().toLowerCase()] === pwd) {
+        sessionStorage.setItem('app-authed', '1');
+        sessionStorage.setItem('app-user', user.trim().toLowerCase());
+        onLogin();
+      } else {
+        setErr('Incorrect username or password.');
+        setPwd('');
+      }
+      setLoading(false);
+    }, 400);
+  };
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'var(--bg)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: 'var(--sans)', zIndex: 9999,
+    }}>
+      <div style={{
+        width: 380, background: 'var(--bg-1)', border: '1px solid var(--border)',
+        borderRadius: 14, padding: '36px 32px', boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+      }}>
+        <div style={{ marginBottom: 28, textAlign: 'center' }}>
+          <div style={{ fontSize: 28, marginBottom: 8 }}>🔐</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--fg)' }}>Scaler Ops Dashboard</div>
+          <div style={{ fontSize: 12, color: 'var(--fg-3)', marginTop: 4 }}>Internal use only — please log in</div>
+        </div>
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--fg-3)',
+            textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>
+            Username
+          </label>
+          <input value={user} onChange={e => setUser(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handle()}
+            placeholder="Enter username"
+            style={{ width: '100%', padding: '9px 12px', borderRadius: 8, fontSize: 13,
+              border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--fg)',
+              outline: 'none', boxSizing: 'border-box' }} />
+        </div>
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--fg-3)',
+            textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>
+            Password
+          </label>
+          <input value={pwd} onChange={e => setPwd(e.target.value)} type="password"
+            onKeyDown={e => e.key === 'Enter' && handle()}
+            placeholder="Enter password"
+            style={{ width: '100%', padding: '9px 12px', borderRadius: 8, fontSize: 13,
+              border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--fg)',
+              outline: 'none', boxSizing: 'border-box' }} />
+        </div>
+        {err && <div style={{ fontSize: 12, color: 'var(--red)', marginBottom: 14,
+          padding: '8px 12px', background: 'var(--red-soft)', borderRadius: 7 }}>{err}</div>}
+        <button onClick={handle} disabled={loading || !user || !pwd}
+          style={{ width: '100%', padding: '10px', borderRadius: 8, border: 'none',
+            background: loading ? 'var(--border)' : 'var(--indigo)', color: '#fff',
+            fontWeight: 700, fontSize: 14, cursor: loading ? 'default' : 'pointer' }}>
+          {loading ? 'Checking...' : 'Login'}
+        </button>
+        <div style={{ fontSize: 10, color: 'var(--fg-4)', textAlign: 'center', marginTop: 16 }}>
+          Contact your manager for credentials
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── App shell ───────────────────────────────────────────────────────────────
 function App() {
   const _initCohorts = (window.MOCK && window.MOCK.cohorts) || [];
   const _initCohort  = _initCohorts.find(c=>c.id==='apr26') || _initCohorts[0] || {id:'april2026', label:'Apr 2026', size:0};
 
+  const [authed, setAuthed]        = useState(()=>sessionStorage.getItem('app-authed')==='1');
   const [page,setPage]             = useState(()=>localStorage.getItem('scaler-page')||'analytics');
   const [unlocked,setUnlocked]     = useState(()=>sessionStorage.getItem('req-unlocked')==='1');
   const [mentorUnlocked,setMentorUnlocked] = useState(()=>sessionStorage.getItem('mentor-unlocked')==='1');
@@ -445,6 +531,8 @@ function App() {
     window.addEventListener('keydown',h);
     return ()=>window.removeEventListener('keydown',h);
   },[]);
+
+  if (!authed) return <LoginGate onLogin={() => setAuthed(true)} />;
 
   return (
     <div className="app">
