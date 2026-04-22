@@ -133,10 +133,13 @@ function transformAnalytics(api) {
 }
 
 // ── Analytics Page ─────────────────────────────────────────────────────────
-function AnalyticsPage() {
+function AnalyticsPage({ cohort, setCohort }) {
   const _initCohorts = (window.MOCK && window.MOCK.cohorts) || [];
   const _initCohort = _initCohorts.find(c=>c.id==='apr26') || _initCohorts[0] || {id:'apr26', label:'Apr 2026', size:0};
-  const [cohort, setCohort]       = useState(_initCohort);
+  // Use prop if provided, else fall back to local state
+  const [localCohort, setLocalCohort] = useState(_initCohort);
+  const activeCohort    = cohort    || localCohort;
+  const setActiveCohort = setCohort || setLocalCohort;
   const [compare, setCompare]     = useState('Single');
   const [trail, setTrail]         = useState([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -162,7 +165,7 @@ function AnalyticsPage() {
         if(window.MOCK && window.MOCK.cohorts){window.MOCK.cohorts.length = 0;
         mapped.slice().reverse().forEach(c => window.MOCK.cohorts.push(c));}
         const apr = mapped.find(c=>c.id==='april2026');
-        if (apr) setCohort(apr);
+        if (apr) setActiveCohort(apr);
 
         // Build GTN trend from real cohort list
         const trend = mapped.filter(c => c.gtn > 0).map(c => ({
@@ -202,13 +205,13 @@ function AnalyticsPage() {
   }, []);
 
   useEffect(() => {
-    if (cohort?.id) loadData(cohort.id);
-  }, [cohort, loadData]);
+    if (activeCohort?.id) loadData(activeCohort.id);
+  }, [activeCohort, loadData]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await window.API.clearCache(toApiId(cohort.id));
-    await loadData(cohort.id);
+    await window.API.clearCache(toApiId(activeCohort.id));
+    await loadData(activeCohort.id);
     setRefreshing(false);
   };
 
@@ -223,13 +226,13 @@ function AnalyticsPage() {
       <Header
         title="Refund Analytics"
         subtitle={d?.kpis?.sales ? `${d.kpis.sales} learners` : 'Loading...'}
-        cohort={cohort} setCohort={setCohort}
+        cohort={activeCohort} setCohort={setActiveCohort}
         compare={compare} setCompare={setCompare}
         onRefresh={handleRefresh} refreshing={refreshing}
       />
       {loading && !liveData ? (
         <div style={{padding:'60px',textAlign:'center',color:'var(--fg-2)',fontSize:13}}>
-          Loading live data for {cohort.label}...
+          Loading live data for {activeCohort.label}...
         </div>
       ) : error ? (
         <div style={{padding:'60px 40px',textAlign:'center'}}>
@@ -239,7 +242,7 @@ function AnalyticsPage() {
         </div>
       ) : (
         <>
-          <KPIStrip cohort={cohort} compare={compare} liveKpis={d?.kpis} />
+          <KPIStrip cohort={activeCohort} compare={compare} liveKpis={d?.kpis} />
           {typeof HierarchyFilter !== 'undefined' && (
             <HierarchyFilter level={viewLevel} setLevel={setViewLevel} />
           )}
@@ -409,12 +412,25 @@ function Tweaks({val,onChange,onClose}) {
 
 // ── App shell ───────────────────────────────────────────────────────────────
 function App() {
+  const _initCohorts = (window.MOCK && window.MOCK.cohorts) || [];
+  const _initCohort  = _initCohorts.find(c=>c.id==='apr26') || _initCohorts[0] || {id:'april2026', label:'Apr 2026', size:0};
+
   const [page,setPage]             = useState(()=>localStorage.getItem('scaler-page')||'analytics');
   const [unlocked,setUnlocked]     = useState(()=>sessionStorage.getItem('req-unlocked')==='1');
   const [mentorUnlocked,setMentorUnlocked] = useState(()=>sessionStorage.getItem('mentor-unlocked')==='1');
   const [pendingCount,setPendingCount] = useState(0);
   const [tweaks,setTweaks]         = useState(TWEAK_DEFAULTS);
   const [tweaksOpen,setTweaksOpen] = useState(false);
+  const [cohort, setCohort]        = useState(_initCohort);
+
+  // Sync cohort from real API cohorts once loaded
+  useEffect(() => {
+    const apiCohorts = window.MOCK && window.MOCK.cohorts;
+    if (apiCohorts && apiCohorts.length > 0 && cohort.id === 'april2026') {
+      const apr = apiCohorts.find(c => c.id === 'april2026') || apiCohorts[apiCohorts.length - 1];
+      if (apr) setCohort(apr);
+    }
+  }, [window.MOCK && window.MOCK.cohorts && window.MOCK.cohorts.length]);
 
   useEffect(()=>{applyTweaks(tweaks);},[]);
   useEffect(()=>{localStorage.setItem('scaler-page',page);},[page]);
@@ -440,7 +456,7 @@ function App() {
     <div className="app">
       <Sidebar page={page} onPage={p=>setPage(p)} pendingCount={page==='requests'&&unlocked?pendingCount:0} />
       <div className="main">
-        {page==='analytics' && <ErrorBoundary><AnalyticsPage /></ErrorBoundary>}
+        {page==='analytics' && <ErrorBoundary><AnalyticsPage cohort={cohort} setCohort={setCohort} /></ErrorBoundary>}
         {page==='requests' && !unlocked && (
           <>
             <Header title="Requests & Approvals" subtitle="Restricted"
