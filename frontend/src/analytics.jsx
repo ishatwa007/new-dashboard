@@ -22,9 +22,9 @@ window.KPIStrip = ({ cohort, compare, liveKpis }) => {
   const gtn       = cur.gtn || 0;
   const complete  = cur.complete  || 0;
   const pending   = cur.pending   || 0;
-  const pctComp   = cur.pct_complete || 0;
-  const refRateTotal    = cur.refund_rate_total    || cur.pct_total  || 0;
-  const refRateComplete = cur.refund_rate_complete || cur.pct_c      || 0;
+  const pctComp         = cur.pctComplete        || cur.pct_complete        || 0;
+  const refRateTotal    = cur.refRateTotal        || cur.refund_rate_total   || cur.pct_total || 0;
+  const refRateComplete = cur.refRateComplete     || cur.refund_rate_complete|| cur.pct_c     || 0;
   const preMng    = cur.preMng  || cur.pre_mng || 0;
   const fecRef    = cur.fecRefunds || cur.fec_refunds || 0;
   const probable  = cur.probableConverted || cur.probable_total || 0;
