@@ -162,11 +162,11 @@ def parse_classes_tab(raw: list) -> tuple[list, list, list]:
                 if overall is not None:
                     batch_data[batch][cn]["overall_atts"].append(overall)
 
-            # Class missed = overall attendance is 0 (didn't attend live OR recording)
-            # We check overall for all classes since C4-C6 have no live_att column
+            # Class missed = overall attendance < 20% (live or recording)
+            # Learners who watched recording (>=20%) are NOT counted as missed
             live_val = _safe_float(row[live_col] if live_col is not None and live_col < len(row) else None)
             missed_att = live_val if live_val is not None else overall
-            if missed_att is not None and missed_att == 0:
+            if missed_att is not None and missed_att < 20:
                 notes = _safe_str(row[notes_col] if notes_col is not None and notes_col < len(row) else "")
                 connect = _safe_str(row[connect_col] if connect_col is not None and connect_col < len(row) else "")
                 psa_note = f"[{connect}] {notes}".strip(" []") if connect and notes else notes or connect
