@@ -8,8 +8,8 @@ window.Sidebar = ({ page, onPage, pendingCount }) => {
       <div className="brand">
         <div className="brand-mark">S</div>
         <div className="brand-text">
-          <div className="brand-title">Refund Audit</div>
-          <div className="brand-sub">scaler.ops</div>
+          <div className="brand-title">Insights Dashboard</div>
+          <div className="brand-sub">Onboarding Team</div>
         </div>
       </div>
 
@@ -26,7 +26,7 @@ window.Sidebar = ({ page, onPage, pendingCount }) => {
       </div>
       <div className={"nav-item " + (page === 'program' ? 'active' : '')} onClick={() => onPage('program')}>
         <Icon name="book" className="ico" />
-        <span>Program Health</span>
+        <span>Overview</span>
         <span className="nav-kbd">3</span>
       </div>
       <div className={"nav-item " + (page === 'mentor' ? 'active' : '')} onClick={() => onPage('mentor')}>
