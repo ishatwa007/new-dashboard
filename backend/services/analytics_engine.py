@@ -48,26 +48,60 @@ def _mng_timing(row: pd.Series) -> str:
     return "pre_mng" if req < mng else "post_mng"
 
 
+# Programs included in GTN calculation
+GTN_PROGRAMS = {"academy", "dsml", "devops", "aiml"}
+
+
+def _is_gtn_program(prog: str) -> bool:
+    if not prog:
+        return False
+    return any(p in prog.lower() for p in GTN_PROGRAMS)
+
+
 # -- cohort-level KPIs --------------------------------------------------------
 
 def compute_kpis(df: pd.DataFrame) -> dict:
     total    = len(df)
     complete = len(df[df["sale_status"] == "COMPLETE"])
     pending  = len(df[df["sale_status"] == "PENDING"])
+    pct_complete = _safe_pct(complete, total)
 
+    # Refund signal: mentee_status == "Refunded" is the source of truth
+    # Fall back to refunded bool if mentee_status not populated
+    if "mentee_status" in df.columns:
+        is_refunded = df["mentee_status"].str.strip().str.lower() == "refunded"
+    else:
+        is_refunded = df.get("refunded", pd.Series(False, index=df.index)) == True
+
+    refunded       = int(is_refunded.sum())
+    refunded_c     = int((is_refunded & (df["sale_status"] == "COMPLETE")).sum())
+
+    # ref_req = anyone who requested (broader set, includes under-retention)
     ref_req    = int((df["refund_requested"] == True).sum())
-    refunded   = int((df["refunded"] == True).sum()) if "refunded" in df.columns else 0
     ref_req_c  = int(((df["refund_requested"] == True) & (df["sale_status"] == "COMPLETE")).sum())
-    refunded_c = int(((df["refunded"] == True) & (df["sale_status"] == "COMPLETE")).sum()) if "refunded" in df.columns else 0
     under_ret  = ref_req - refunded
     ref_p      = int(((df["refund_requested"] == True) & (df["sale_status"] == "PENDING")).sum())
 
-    # Retained from complete = requested from complete but not actually refunded
-    retained_c = ref_req_c - refunded_c
+    retained_c   = ref_req_c - refunded_c
     retained_pct = _safe_pct(retained_c, ref_req_c) if ref_req_c > 0 else 0
 
-    # GTN = (complete - actually_refunded_from_complete) / total
-    gtn = _safe_pct(complete - refunded_c, total)
+    # Refund rates
+    refund_rate_total    = _safe_pct(refunded, total)
+    refund_rate_complete = _safe_pct(refunded_c, complete)
+
+    # GTN — only for Academy, DSML, DevOps, AIML programs
+    if "intake_program" in df.columns:
+        gtn_df = df[df["intake_program"].apply(_is_gtn_program)]
+    elif "current_program" in df.columns:
+        gtn_df = df[df["current_program"].apply(_is_gtn_program)]
+    else:
+        gtn_df = df
+
+    gtn_complete  = len(gtn_df[gtn_df["sale_status"] == "COMPLETE"])
+    gtn_refunded  = 0
+    if "mentee_status" in gtn_df.columns:
+        gtn_refunded = int((gtn_df["mentee_status"].str.strip().str.lower() == "refunded").sum())
+    gtn = _safe_pct(gtn_complete - gtn_refunded, len(gtn_df)) if len(gtn_df) > 0 else 0
 
     # Pre/post MnG
     refund_df = df[df["refund_requested"] == True].copy()
@@ -78,39 +112,42 @@ def compute_kpis(df: pd.DataFrame) -> dict:
     else:
         pre_mng = post_mng = 0
 
-    # First Call Refunds — raised during FEC (AO = Refund Requested In Fec has a date)
+    # First Call Refunds — raised during FEC
     fec_refunds = 0
     if "refund_in_fec" in df.columns:
         fec_refunds = int(df["refund_in_fec"].notna().sum())
 
     # Probable
-    probable_total   = len(df[df["probable_id"].notna()]) if "probable_id" in df.columns else 0
+    probable_total    = len(df[df["probable_id"].notna()]) if "probable_id" in df.columns else 0
     probable_refunded = len(df[(df["probable_id"].notna()) & (df["refund_requested"] == True)]) if "probable_id" in df.columns else 0
 
     return {
-        "total":            total,
-        "complete":         complete,
-        "pending":          pending,
-        "ref_total":        ref_req,
-        "ref_c":            refunded_c,
-        "ref_req_c":        ref_req_c,
-        "refunded":         refunded,
-        "under_ret":        under_ret,
-        "ref_p":            ref_p,
-        "retained":         retained_c,
-        "retained_pct":     retained_pct,
-        "gtn":              gtn,
-        "pct_total":        _safe_pct(ref_req, total),
-        "pct_c":            _safe_pct(refunded_c, complete),
-        "pct_req_c":        _safe_pct(ref_req_c, complete),
-        "pre_mng":          pre_mng,
-        "post_mng":         post_mng,
-        "pct_pre_mng":      _safe_pct(pre_mng, ref_req),
-        "pct_post_mng":     _safe_pct(post_mng, ref_req),
-        "fec_refunds":      fec_refunds,
-        "pct_fec":          _safe_pct(fec_refunds, ref_req),
-        "probable_total":   probable_total,
-        "probable_refunded": probable_refunded,
+        "total":              total,
+        "complete":           complete,
+        "pending":            pending,
+        "pct_complete":       pct_complete,
+        "refund_rate_total":  refund_rate_total,
+        "refund_rate_complete": refund_rate_complete,
+        "ref_total":          ref_req,
+        "ref_c":              refunded_c,
+        "ref_req_c":          ref_req_c,
+        "refunded":           refunded,
+        "under_ret":          under_ret,
+        "ref_p":              ref_p,
+        "retained":           retained_c,
+        "retained_pct":       retained_pct,
+        "gtn":                gtn,
+        "pct_total":          _safe_pct(ref_req, total),
+        "pct_c":              _safe_pct(refunded_c, complete),
+        "pct_req_c":          _safe_pct(ref_req_c, complete),
+        "pre_mng":            pre_mng,
+        "post_mng":           post_mng,
+        "pct_pre_mng":        _safe_pct(pre_mng, ref_req),
+        "pct_post_mng":       _safe_pct(post_mng, ref_req),
+        "fec_refunds":        fec_refunds,
+        "pct_fec":            _safe_pct(fec_refunds, ref_req),
+        "probable_total":     probable_total,
+        "probable_refunded":  probable_refunded,
         "pct_probable_converted": _safe_pct(probable_refunded, probable_total),
     }
 

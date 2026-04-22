@@ -20,23 +20,27 @@ window.KPIStrip = ({ cohort, compare, liveKpis }) => {
 
   const sales     = cur.sales || cur.total || 0;
   const gtn       = cur.gtn || 0;
-  const refRate   = cur.refundRate || cur.pct_c || 0;
-  const refComp   = cur.refundsComplete || cur.ref_c || 0;
-  const refPend   = cur.refundsPending  || cur.ref_p || 0;
+  const complete  = cur.complete  || 0;
+  const pending   = cur.pending   || 0;
+  const pctComp   = cur.pct_complete || 0;
+  const refRateTotal    = cur.refund_rate_total    || cur.pct_total  || 0;
+  const refRateComplete = cur.refund_rate_complete || cur.pct_c      || 0;
   const preMng    = cur.preMng  || cur.pre_mng || 0;
   const fecRef    = cur.fecRefunds || cur.fec_refunds || 0;
   const probable  = cur.probableConverted || cur.probable_total || 0;
 
   const cards = [
-    { key:'sales',     label:'Total Sales',        val:fmt.int(sales),          unit:'learners', prev:prev?.sales,             curRaw:sales,    tone:'neutral' },
-    { key:'gtn',       label:'GTN',                val:gtn.toFixed(1),          unit:'%',        prev:prev?.gtn,               curRaw:gtn,      tone:gtn>=78?'good':'bad', showSpark:true },
-    { key:'refRate',   label:'Refund Rate',         val:refRate.toFixed(1),      unit:'%',        prev:prev?.refundRate,        curRaw:refRate,  tone:refRate<=10?'good':refRate>=12?'bad':'warn', inverse:true },
-    { key:'refComp',   label:'Refunds Complete',    val:fmt.int(refComp),        unit:'',         prev:prev?.refundsComplete,   curRaw:refComp,  tone:'neutral', inverse:true },
-    { key:'refPend',   label:'Refunds Pending',     val:fmt.int(refPend),        unit:'',         prev:prev?.refundsPending,    curRaw:refPend,  tone:'warn', inverse:true },
-    { key:'preMng',    label:'Pre-MnG Refunds',     val:fmt.int(preMng),         unit:'',         prev:prev?.preMng,            curRaw:preMng,   tone:'bad', inverse:true },
-    { key:'fecRef',    label:'First Call Refunds',  val:fmt.int(fecRef),         unit:'',         prev:prev?.fecRefunds,        curRaw:fecRef,   tone:fecRef>0?'bad':'good', inverse:true,
-      hint:'Raised during FEC call' },
-    { key:'probable',  label:'Probable Identified', val:fmt.int(probable),       unit:'',         prev:prev?.probableConverted, curRaw:probable, tone:'good' },
+    { key:'sales',       label:'Total Sales',          val:fmt.int(sales),              unit:'learners', prev:prev?.sales,             curRaw:sales,         tone:'neutral' },
+    { key:'complete',    label:'Complete Sales',        val:fmt.int(complete),           unit:'',         prev:prev?.complete,          curRaw:complete,      tone:'good' },
+    { key:'pending',     label:'Pending Sales',         val:fmt.int(pending),            unit:'',         prev:prev?.pending,           curRaw:pending,       tone:'warn', inverse:true },
+    { key:'pctComp',     label:'% Complete',            val:pctComp.toFixed(1),          unit:'%',        prev:prev?.pctComplete,       curRaw:pctComp,       tone:pctComp>=75?'good':'warn' },
+    { key:'gtn',         label:'GTN',                   val:gtn.toFixed(1),              unit:'%',        prev:prev?.gtn,               curRaw:gtn,           tone:gtn>=78?'good':'bad', showSpark:true,
+      hint:'Academy, DSML, DevOps, AIML only' },
+    { key:'refRateComp', label:'Refund Rate (Complete)',val:refRateComplete.toFixed(1),  unit:'%',        prev:prev?.refRateComplete,   curRaw:refRateComplete, tone:refRateComplete<=10?'good':refRateComplete>=15?'bad':'warn', inverse:true },
+    { key:'refRateTotal',label:'Refund Rate (Total)',   val:refRateTotal.toFixed(1),     unit:'%',        prev:prev?.refRateTotal,      curRaw:refRateTotal,  tone:refRateTotal<=8?'good':refRateTotal>=12?'bad':'warn', inverse:true },
+    { key:'preMng',      label:'Pre-MnG Refunds',       val:fmt.int(preMng),             unit:'',         prev:prev?.preMng,            curRaw:preMng,        tone:'bad', inverse:true },
+    { key:'fecRef',      label:'First Call Refunds',    val:fmt.int(fecRef),             unit:'',         prev:prev?.fecRefunds,        curRaw:fecRef,        tone:fecRef>0?'bad':'good', inverse:true },
+    { key:'probable',    label:'Probable Identified',   val:fmt.int(probable),           unit:'',         prev:prev?.probableConverted, curRaw:probable,      tone:'good' },
   ];
 
   return (
