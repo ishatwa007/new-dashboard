@@ -1,186 +1,204 @@
-# Scaler Refund Audit Dashboard — Final Build
+# Scaler Refund Audit Dashboard
 
-Complete merged build with **all 3 pages** wired to live Google Sheets + Groq AI classification.
+FastAPI + Google Sheets powered dashboard for auditing refunds, approvals, mentor no-shows, and classroom health.
+
+> **Status:** This README was updated on 2026-04-22 to match the current repo layout and backend API (v3.0.0).
+
+## Contents
+- [Repo structure](#repo-structure)
+- [Features / Pages](#features--pages)
+- [Local setup (Windows / macOS / Linux)](#local-setup-windows--macos--linux)
+- [Configuration (.env)](#configuration-env)
+- [Run](#run)
+- [Verify](#verify)
+- [Backend API endpoints](#backend-api-endpoints)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
-## What's in this zip
+## Repo structure
 
 ```
-scaler-dashboard/
+new-dashboard/
 ├── backend/
-│   ├── main.py                          # FastAPI — all 3 pages routed
-│   ├── config.py                        # Env + key file loader
+│   ├── main.py                 # FastAPI app (API v3.0.0)
+│   ├── config.py               # Env + sheet-id config loader
 │   ├── requirements.txt
 │   ├── .env.example
 │   └── services/
-│       ├── analytics_engine.py          # Rate/GTN rules applied
-│       ├── cleaner.py                   # Clean Google Sheets rows
-│       ├── sheets_loader.py             # Tries "Raw" tab first
-│       ├── reason_classifier.py         # Groq AI + keyword fallback
-│       ├── lsm_loader.py                # Requests sheet reader/writer
-│       ├── classifier.py                # Request body classifier
-│       ├── program_health.py            # Page 3 router
-│       └── cache.py                     # In-memory TTL cache
+│       ├── analytics_engine.py
+│       ├── cleaner.py
+│       ├── sheets_loader.py
+│       ├── reason_classifier.py
+│       ├── lsm_loader.py
+│       ├── program_health.py
+│       ├── mentor_loader.py
+│       └── cache.py
 └── frontend/
     ├── Refund Audit Dashboard.html
     └── src/
-        ├── api.js                       # 60s timeout, retry on 503, all pages
-        ├── data.js                      # Mock fallback data
-        ├── ui.jsx                       # Shared icons + helpers
-        ├── chrome.jsx                   # Sidebar (3 tabs) + Header
-        ├── analytics.jsx                # Page 1 — GTN only in Program/AVP
-        ├── requests.jsx                 # Page 2 — approvals
-        ├── program.jsx                  # Page 3 — Program Health
-        ├── settings.jsx                 # Settings page
-        ├── app.jsx                      # Root shell, keyboard shortcuts 1/2/3
-        └── styles.css                   # Plus Jakarta Sans, premium polish
+        ├── api.js              # Backend client (60s timeout, retry on 503)
+        ├── analytics.jsx       # Page 1
+        ├── requests.jsx        # Page 2
+        ├── mentor.jsx          # Page 3
+        ├── classroom.jsx       # Page 4
+        ├── settings.jsx        # Settings (PostSales tracker config helper)
+        ├── chrome.jsx          # Sidebar + Header
+        ├── ui.jsx
+        ├── data.js             # Mock fallback data
+        ├── app.jsx             # Root shell + keyboard shortcuts
+        └── styles.css
 ```
 
 ---
 
-## Deploy Steps (Windows PowerShell)
+## Features / Pages
 
-### 1. Delete old files, extract this zip
+| Page | Nav / Shortcut | What it shows |
+|---|---|---|
+| Analytics | `1` | GTN, refund rates, PSA performance, AI-classified reasons |
+| Requests | `2` | Refund approval queue (approve/reject writes back to Google Sheet) |
+| Mentor | `3` | Mentor tracking + no-shows |
+| Classroom | `4` | Batch ratings + low raters (uses Post Sales tracker per cohort) |
+| Settings | Sidebar | Post Sales tracker mapping + cohort helpers |
 
-Extract `scaler-dashboard-final.zip` to e.g. `C:\Users\IshatwaChaubey\Downloads\scaler-dashboard\`.
+> Note: the frontend is a static HTML app that loads React via CDN and uses Babel in-browser (dev-friendly, not optimized for production bundling).
 
-### 2. Set up backend
+---
 
-```powershell
-cd C:\Users\IshatwaChaubey\Downloads\scaler-dashboard\backend
+## Local setup (Windows / macOS / Linux)
 
-# Copy env template and edit it
-copy .env.example .env
-notepad .env
-```
+### Prerequisites
+- Python 3.10+ recommended
+- Access to the Google Sheets and a Google service account JSON key
 
-In `.env`, set:
-- `GOOGLE_KEY_FILE` — full path to your service account JSON key (already downloaded)
-- `GROQ_API_KEY` — your Groq API key for AI reason classification
+### Backend
 
-Save and close.
-
-### 3. Install Python deps
-
-```powershell
+```bash
+cd backend
 python -m venv venv
-.\venv\Scripts\Activate.ps1
+# Windows PowerShell
+#   .\venv\Scripts\Activate.ps1
+# macOS/Linux
+#   source venv/bin/activate
 pip install -r requirements.txt
+
+# Create env file
+# Windows: copy .env.example .env
+# macOS/Linux: cp .env.example .env
 ```
 
-### 4. Share Google Sheets with the service account
+Edit `backend/.env` (see next section).
 
-If not already done, share these 4 sheets with `scaler-reader@scaler-dashboard.iam.gserviceaccount.com` (Viewer access is enough, Editor needed for the Requests sheet if you want approve/reject to write back):
+Start the backend:
 
-- **Refunds Funnel** — `1FSyE9GXB7yrWZ6DVElzNykcnlGr7bYEY3c5k_fs1NV4`
-- **Persona Tracking** — `1pgf3eruMcWCDWIZBeDzt1MPm75w0dVyhx4OAvJTj-ls`
-- **LSM Tracker** — `1-83qFsRBEXGQGyHPdmmhbd9Gx1aACSRlM7OxHtRnE9w` (Editor)
-- **Post Sales Apr26 Tracker** — `1QafI9LO7o2UvS3Uk6djwX5XsljLeSHu8ToWsvND2bRs`
-
-### 5. Start the backend
-
-```powershell
-cd C:\Users\IshatwaChaubey\Downloads\scaler-dashboard\backend
-.\venv\Scripts\Activate.ps1
+```bash
+cd backend
+# (activate venv first)
 python -m uvicorn main:app --reload --port 8000
 ```
 
-Wait 30-60 seconds for "Funnel refreshed: 6717 rows" message.
+### Frontend
 
-Verify in a new terminal:
-```powershell
-curl http://localhost:8000/health
-```
-
-Should return `funnel_rows: 6717`.
-
-### 6. Start the frontend (in a new terminal)
-
-```powershell
-cd C:\Users\IshatwaChaubey\Downloads\scaler-dashboard\frontend
+```bash
+cd frontend
 python -m http.server 3000
 ```
 
-Open in Chrome: **http://localhost:3000/Refund Audit Dashboard.html**
+Open: `http://localhost:3000/Refund%20Audit%20Dashboard.html`
 
 ---
 
-## Pages
+## Configuration (.env)
 
-| Page | Shortcut | What it shows |
-|---|---|---|
-| Analytics | `1` | GTN, refund rates, PSA performance, AI-classified reasons |
-| Requests | `2` | Refund approval queue (password: **2026**) |
-| Program Health | `3` | Class incidents, low-rated classes, mentor tracking |
+Copy `backend/.env.example` to `backend/.env` and set the values.
+
+### Required
+- `GOOGLE_KEY_FILE` **or** `GOOGLE_CREDENTIALS`
+- `SHEET_FUNNEL_ID`
+- `SHEET_PERSONA_ID`
+- `SHEET_LSM_ID`
+- `GROQ_API_KEY` (AI reason classification)
+
+### Optional
+- `SHEET_MENTOR_ID` (mentor sheet; if omitted, backend falls back to its default)
+- `SLACK_WEBHOOK_URL` (Page 3 notifications; optional)
+- `CACHE_TTL_MINUTES` (default 15)
+- `FRONTEND_URL` (CORS; default `*` for local dev)
+- `SHEET_POSTSALES_ID` and/or additional `SHEET_POSTSALES_*` env vars
+  - Default cohort mapping includes `april2026` via `SHEET_POSTSALES_ID`.
+  - To add a tracker for a new cohort, add an env var like:
+    - `SHEET_POSTSALES_MAY2026=...`
+
+### Google Sheets permissions
+Share the relevant Google Sheets with the **service account email inside your JSON key** ("client_email").
+- Viewer is enough for read-only sheets
+- Editor is needed for the Requests/LSM sheet if you want approve/reject to write back
 
 ---
 
-## Key Rules Applied
+## Run
+1. Start backend on port 8000
+2. Start frontend on port 3000
 
-### GTN vs Rate
-- **GTN shown**: Overall cohort KPI strip, Program table, AVP level only
-- **Rate only**: BDM, BDA, PSA, Weeks, Sources
+---
 
-### PSA Table
-Shows: Assigned · Complete · Refund Requested · Refunded · Retained · Retained % · Rate
-Retained % = Retained count ÷ Requested from complete
+## Verify
 
-### Refund Reasons
-AI classification via Groq (llama-3.1-8b-instant):
-1. Pulls all refund-requested emails from funnel
-2. Matches with Persona sheet (Apr26 tab) for free-text reasons
-3. Groq classifies each reason into 8 canonical buckets
-4. Keyword fallback if Groq API is down
-5. Results cached to disk (`classifier_cache/`) so same reason never re-classified
-6. Emails without reasons filed yet → "Other" bucket
+Backend health:
 
-Canonical buckets:
-- Financial constraints / EMI
-- Time constraints / workload
-- First call refund / pre-MnG
-- Career / program misalignment
-- Medical / personal emergency
-- Push sale / enrollment regret
-- Constant DNP / no engagement
-- Other
+```bash
+curl http://localhost:8000/health
+```
+
+If the funnel is loaded you should see a non-zero `funnel_rows`.
+
+If you get HTTP 503 from analytics endpoints, the backend is still warming up (frontend retries 503 automatically).
+
+---
+
+## Backend API endpoints
+
+Core
+- GET `/health`
+- GET `/cohorts`
+- POST `/refresh` (invalidate caches + queue funnel refresh)
+
+Analytics (Page 1)
+- GET `/analytics/{cohort_id}`
+- GET `/analytics/{cohort_id}?refresh=true` (invalidate analytics cache for that cohort)
+- GET `/api/psas/{cohort_id}`
+- GET `/api/lsm-stats?cohort=april2026`
+
+Requests (Page 2)
+- GET `/api/requests?cohort=april2026`
+- POST `/api/requests/approve`
+- POST `/api/requests/reject`
+- POST `/api/classify`
+
+Mentor (Page 3)
+- GET `/api/mentor/noshows/{cohort_id}`
+
+Debug
+- GET `/debug-sheets`
+- GET `/debug-lsm`
+- GET `/debug-persona/{cohort_id}`
 
 ---
 
 ## Troubleshooting
 
-### Backend shows `funnel_rows: 0`
-Service account missing access to the Funnel sheet. Share it with the email above.
+### `GET /health` shows `funnel_rows: 0`
+The service account does not have access to the Funnel sheet. Share the funnel sheet with the service account email in your key file ("client_email").
 
-### Frontend can't reach backend (timeout / CORS)
-Both must be running. Check:
-- Backend on 8000: `curl http://localhost:8000/health`
-- Frontend on 3000 (not 5173)
+### Frontend times out / can't reach backend
+- Confirm backend: `curl http://localhost:8000/health`
+- Confirm frontend is served from port 3000 (not 5173)
+- If you changed ports, update `window.API_BASE` in `frontend/Refund Audit Dashboard.html`
 
 ### Reasons show all as "Other"
-Persona sheet (Apr26 tab) has no filled-in reasons yet. Fill the "Identified Refund Reason" column.
+Persona tab for that cohort likely has no reason text (or the expected reason columns are missing). Use:
+- `GET /debug-persona/{cohort_id}`
 
-### Page 3 shows mock data
-LSM sheet missing "Program Incidents", "Class Tracker", or "Ratings Sheet" tabs. Create them in the LSM sheet `1-83qFsRBEXGQGyHPdmmhbd9Gx1aACSRlM7OxHtRnE9w`.
-
-### Groq API key not working
-Get a free one from https://console.groq.com/keys and paste into `.env` as `GROQ_API_KEY=gsk_...`
-
----
-
-## Backend Endpoints
-
-| Endpoint | Purpose |
-|---|---|
-| GET `/health` | Sanity check |
-| GET `/cohorts` | List all cohorts |
-| GET `/analytics/{cohort_id}` | Full analytics for a cohort |
-| GET `/api/psas/{cohort_id}` | PSA breakdown |
-| GET `/api/requests?cohort=...` | Open refund requests |
-| POST `/api/requests/approve` | Approve (writes back to sheet) |
-| POST `/api/requests/reject` | Reject (writes back to sheet) |
-| GET `/api/program/health` | Page 3 data |
-| POST `/api/program/resolve` | Resolve incident |
-| POST `/api/program/escalate` | Escalate incident |
-| GET `/debug-sheets` | List funnel sheet tabs |
-| GET `/debug-lsm` | List LSM sheet tabs |
+### Program Health / Mentor pages show empty data
+Ensure the relevant tabs exist in the LSM / mentor sheets and that the service account has access (and edit access where writing is required).
