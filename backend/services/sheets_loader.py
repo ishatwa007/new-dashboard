@@ -30,6 +30,7 @@ FUNNEL_TAB_CANDIDATES = [
 
 
 def _get_client() -> gspread.Client:
+    logger.info("Authenticating Google Sheets client from configured credentials")
     creds_dict = get_google_creds()
     creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
     return gspread.authorize(creds)
@@ -39,6 +40,7 @@ def load_funnel_df() -> pd.DataFrame:
     """Load Refunds Funnel data. Tries multiple tab names, falls back to first tab."""
     logger.info("Loading Refunds Funnel sheet...")
     gc = _get_client()
+    logger.info("Opening funnel workbook by key")
     sh = gc.open_by_key(SHEET_FUNNEL_ID)
 
     ws = None
@@ -54,14 +56,17 @@ def load_funnel_df() -> pd.DataFrame:
         ws = sh.get_worksheet(0)
         logger.info(f"Using first tab: '{ws.title}'")
 
+    logger.info(f"Reading rows from funnel tab '{ws.title}'")
     data = ws.get_all_values()
     if not data:
         raise ValueError("Funnel sheet is empty")
 
     headers = data[0]
     rows    = data[1:]
+    logger.info(f"Funnel raw payload: {len(rows)} data rows, {len(headers)} columns")
     raw_df  = pd.DataFrame(rows, columns=headers)
 
+    logger.info("Cleaning funnel rows")
     cleaned = [clean_funnel_row(row) for _, row in raw_df.iterrows()]
     df = pd.DataFrame([r for r in cleaned if r.get("email")])
     logger.info(f"Funnel loaded: {len(df)} rows after cleaning")

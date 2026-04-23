@@ -79,7 +79,7 @@ async def _refresh_funnel():
         set_funnel_lookup(df)
         logger.info(f"Funnel refreshed: {len(df)} rows")
     except Exception as e:
-        logger.error(f"Funnel refresh failed: {e}")
+        logger.exception(f"Funnel refresh failed: {e}")
 
 
 def _get_gc():

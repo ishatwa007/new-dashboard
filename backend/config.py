@@ -3,6 +3,7 @@ config.py - Environment configuration
 """
 import os
 import json
+from json import JSONDecodeError
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -64,10 +65,26 @@ def get_google_creds():
     if key_file and os.path.exists(key_file):
         with open(key_file, "r") as f:
             return json.load(f)
-    raw = os.getenv("GOOGLE_CREDENTIALS", "")
+
+    raw = os.getenv("GOOGLE_CREDENTIALS", "").strip()
     if not raw:
         raise ValueError("Neither GOOGLE_KEY_FILE nor GOOGLE_CREDENTIALS is set")
-    creds = json.loads(raw)
+
+    # Be forgiving if the env var contains a path instead of inline JSON.
+    if os.path.exists(raw):
+        with open(raw, "r") as f:
+            return json.load(f)
+
+    try:
+        creds = json.loads(raw)
+    except JSONDecodeError as e:
+        preview = raw[:80].replace("\n", "\\n")
+        raise ValueError(
+            "GOOGLE_CREDENTIALS is not valid JSON. "
+            "Set it to the full service account JSON object on Railway, or use "
+            f"GOOGLE_KEY_FILE. Preview: {preview!r}"
+        ) from e
+
     if "private_key" in creds:
         creds["private_key"] = creds["private_key"].replace("\\n", "\n")
     return creds
