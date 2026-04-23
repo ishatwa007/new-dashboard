@@ -169,6 +169,10 @@ function MentorPage({ cohort }) {
   const [aiLoading, setAiLoading]     = useMT({});
   const [expandedMentor, setExpandedMentor] = useMT(null);
   const [expandedMentee, setExpandedMentee] = useMT(null);
+  const [atRisk, setAtRisk]     = useMT(null);
+  const [atRiskLoading, setAtRiskLoading] = useMT(true);
+  const [expandedLR, setExpandedLR] = useMT(null);
+  const [expandedNS, setExpandedNS] = useMT(null);
 
   const q = search.toLowerCase().trim();
 
@@ -182,6 +186,11 @@ function MentorPage({ cohort }) {
       !q || m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q)
     ), [data, q]);
 
+  const filteredLowRaters = useMTM(() =>
+    (atRisk?.low_raters||[]).filter(m =>
+      !q || (m.name||'').toLowerCase().includes(q) || (m.email||'').toLowerCase().includes(q) || (m.batch||'').toLowerCase().includes(q)
+    ), [atRisk, q]);
+
   const loadData = useMTCB(async () => {
     setLoading(true); setError(null);
     try {
@@ -191,20 +200,26 @@ function MentorPage({ cohort }) {
     finally { setLoading(false); }
   }, [cohort?.id]);
 
-  useMTE(() => { loadData(); }, [loadData]);
+  const loadAtRisk = useMTCB(async () => {
+    setAtRiskLoading(true);
+    try {
+      const res = await window.API.getMentorBackend(cohort);
+      setAtRisk(res);
+    } catch(e) { console.error('At risk load error:', e); }
+    finally { setAtRiskLoading(false); }
+  }, [cohort?.id]);
 
-  const generateSummary = async (key, sessions) => {
+  useMTE(() => { loadData(); loadAtRisk(); }, [loadData, loadAtRisk]);
+
+  const generateSummary = async (key, items, context) => {
     if (aiSummaries[key] || aiLoading[key]) return;
-    const items = sessions.map(s =>
-      [s.agenda, s.reason_category, s.reason_detail].filter(Boolean).join(' — ')
-    ).filter(Boolean);
-    if (!items.length) return;
+    if (!items?.length) return;
     setAiLoading(p => ({...p,[key]:true}));
     try {
-      const res = await fetch(`${window.API_BASE || 'https://new-dashboard-id87.onrender.com'}/api/ai/summary`, {
+      const res = await fetch(`${window.API_BASE || 'https://Bhagwan007-scaler-ops-backend.hf.space'}/api/ai/summary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items, context: 'mentor/mentee no-show sessions' })
+        body: JSON.stringify({ items, context: context || 'mentor sessions' })
       });
       const json = await res.json();
       setAiSummaries(p => ({...p,[key]: json.bullets || []}));
@@ -224,6 +239,7 @@ function MentorPage({ cohort }) {
 
   const TABS = [
     { id:'overview', label:'Overview',        icon:'📊' },
+    { id:'atrisk',   label:'At Risk',         icon:'⚠️',  badge: (atRisk?.low_raters_count||0) + (atRisk?.mentor_noshows||0) + (atRisk?.mentee_noshows||0) || null },
     { id:'mentors',  label:'Mentor No Shows', icon:'🔴', badge: data.mentor_noshows||null },
     { id:'mentees',  label:'Mentee No Shows', icon:'🟡', badge: data.mentee_noshows||null },
   ];
@@ -346,7 +362,10 @@ function MentorPage({ cohort }) {
               const isRepeat = m.no_show_count>=2;
               const isOpen   = expandedMentor===m.email;
               const aiKey    = `mentor-${m.email}`;
-              if (isOpen && !aiSummaries[aiKey] && !aiLoading[aiKey]) generateSummary(aiKey, m.sessions);
+              if (isOpen && !aiSummaries[aiKey] && !aiLoading[aiKey]) {
+                const items = m.sessions.map(s => [s.agenda, s.reason_category, s.reason_detail].filter(Boolean).join(' — ')).filter(Boolean);
+                generateSummary(aiKey, items, 'mentor no-show sessions');
+              }
               return (
                 <div key={i} style={{background:MT.card,
                   border:`1px solid ${isRepeat?MT.red:MT.border}`,
@@ -397,7 +416,10 @@ function MentorPage({ cohort }) {
               const isOpen   = expandedMentee===m.email;
               const aiKey    = `mentee-${m.email}`;
               const batch    = m.sessions[0]?.batch||'';
-              if (isOpen && !aiSummaries[aiKey] && !aiLoading[aiKey]) generateSummary(aiKey, m.sessions);
+              if (isOpen && !aiSummaries[aiKey] && !aiLoading[aiKey]) {
+                const items = m.sessions.map(s => [s.agenda, s.reason_category, s.reason_detail].filter(Boolean).join(' — ')).filter(Boolean);
+                generateSummary(aiKey, items, 'mentee no-show sessions');
+              }
               return (
                 <div key={i} style={{background:MT.card,
                   border:`1px solid ${isRepeat?MT.amber:MT.border}`,
@@ -437,6 +459,185 @@ function MentorPage({ cohort }) {
               );
             })
           }
+        </div>
+      )}
+
+      {/* ── AT RISK TAB ──────────────────────────────────────── */}
+      {tab==='atrisk' && (
+        <div>
+          {atRiskLoading ? (
+            <div style={{textAlign:'center',padding:'40px 0',color:MT.txt4}}>Loading at-risk data...</div>
+          ) : !atRisk ? (
+            <div style={{textAlign:'center',padding:'40px 0',color:MT.txt4}}>No data available</div>
+          ) : (
+            <>
+              {/* Low Rated PYSJ Section */}
+              <div style={{marginBottom:28}}>
+                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
+                  <div style={{fontSize:14,fontWeight:700,color:MT.txt1}}>Low Rated PYSJ Sessions</div>
+                  <span style={{padding:'2px 10px',borderRadius:999,fontSize:11,fontWeight:700,
+                    background:MT.redBg,color:MT.red}}>{atRisk.low_raters_count||0}</span>
+                </div>
+
+                {!filteredLowRaters.length ? (
+                  <div style={{textAlign:'center',padding:'30px 0',color:MT.txt4,fontSize:12}}>No low rated sessions for this cohort</div>
+                ) : (
+                  /* Group by batch */
+                  Object.entries(
+                    filteredLowRaters.reduce((acc, lr) => {
+                      const b = lr.batch || 'Unknown';
+                      if (!acc[b]) acc[b] = [];
+                      acc[b].push(lr);
+                      return acc;
+                    }, {})
+                  ).map(([batch, learners], bi) => {
+                    const batchKey = `lr-batch-${bi}`;
+                    const isOpen = expandedLR === batchKey;
+                    if (isOpen && !aiSummaries[batchKey] && !aiLoading[batchKey]) {
+                      const items = learners.map(l => [l.name, l.replies].filter(Boolean).join(': ')).filter(Boolean);
+                      generateSummary(batchKey, items, 'low rated PYSJ sessions');
+                    }
+                    return (
+                      <div key={bi} style={{background:MT.card,border:`1px solid ${MT.border}`,
+                        borderLeft:`4px solid ${MT.red}`,borderRadius:MT.radius,marginBottom:10,overflow:'hidden'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:12,padding:'12px 18px',cursor:'pointer'}}
+                          onClick={() => setExpandedLR(isOpen ? null : batchKey)}>
+                          <div style={{flex:1}}>
+                            <span style={{fontSize:13,fontWeight:700,color:MT.txt1}}>{batch}</span>
+                            <span style={{marginLeft:10,fontSize:11,color:MT.txt4}}>{learners.length} learner{learners.length>1?'s':''}</span>
+                          </div>
+                          <span style={{color:MT.txt4}}>{isOpen?'▲':'▼'}</span>
+                        </div>
+                        {isOpen && (
+                          <div style={{padding:'0 18px 16px',borderTop:`1px solid ${MT.border}`,paddingTop:14}}>
+                            <MTAISummary bullets={aiSummaries[batchKey]} loading={aiLoading[batchKey]} />
+                            {learners.map((lr, li) => {
+                              const lrKey = `lr-${lr.email}-${li}`;
+                              const lrOpen = expandedLR === lrKey;
+                              if (lrOpen && lr.replies && !aiSummaries[lrKey] && !aiLoading[lrKey]) {
+                                generateSummary(lrKey, [lr.replies], `low rated PYSJ session for ${lr.name}`);
+                              }
+                              return (
+                              <div key={li} style={{padding:'10px 12px',background:MT.bg,
+                                border:`1px solid ${MT.border}`,borderRadius:8,marginBottom:8,cursor:'pointer'}}
+                                onClick={() => setExpandedLR(lrOpen ? batchKey : lrKey)}>
+                                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom: lrOpen?8:0}}>
+                                  <MTAvatar name={lr.name} size={30} />
+                                  <div style={{flex:1}}>
+                                    <div style={{fontSize:13,fontWeight:600,color:MT.txt1}}>{lr.name}</div>
+                                    <div style={{fontSize:11,color:MT.txt4}}>{lr.email}</div>
+                                  </div>
+                                  {lr.program && (
+                                    <span style={{padding:'2px 8px',borderRadius:6,fontSize:10,
+                                      background:MT.accentBg,color:MT.accent,fontWeight:600}}>
+                                      {lr.program}
+                                    </span>
+                                  )}
+                                  {lr.replies && <span style={{fontSize:11,color:MT.accent}}>💬</span>}
+                                  {lr.slack_url && (
+                                    <a href={lr.slack_url} target="_blank" rel="noreferrer"
+                                      onClick={e => e.stopPropagation()}
+                                      style={{fontSize:11,color:MT.accent,textDecoration:'none'}}>
+                                      Slack ↗
+                                    </a>
+                                  )}
+                                </div>
+                                {lrOpen && (
+                                  <>
+                                    <MTAISummary bullets={aiSummaries[lrKey]} loading={aiLoading[lrKey]} />
+                                    {lr.replies && (
+                                      <div style={{fontSize:11,color:MT.txt3,marginTop:4,
+                                        padding:'6px 10px',background:'var(--bg-2)',borderRadius:6,
+                                        fontStyle:'italic'}}>
+                                        💬 {lr.replies}
+                                      </div>
+                                    )}
+                                    {lr.mentor_email && (
+                                      <div style={{fontSize:11,color:MT.txt4,marginTop:6}}>
+                                        Mentor: {lr.mentor_email}
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* No Shows from Backend Section */}
+              <div>
+                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
+                  <div style={{fontSize:14,fontWeight:700,color:MT.txt1}}>No Shows (from Slack)</div>
+                  <span style={{padding:'2px 10px',borderRadius:999,fontSize:11,fontWeight:700,
+                    background:MT.amberBg,color:MT.amber}}>{atRisk.no_shows?.length||0}</span>
+                </div>
+
+                {!(atRisk.no_shows?.length) ? (
+                  <div style={{textAlign:'center',padding:'30px 0',color:MT.txt4,fontSize:12}}>No no-shows logged</div>
+                ) : atRisk.no_shows.map((ns, ni) => {
+                  const t = mtTypeLabel(ns.type);
+                  const nsKey = `ns-${ni}`;
+                  const isOpen = expandedNS === nsKey;
+                  if (isOpen && ns.replies && !aiSummaries[nsKey] && !aiLoading[nsKey]) {
+                    generateSummary(nsKey, [ns.replies], `${t.label} - thread replies from PSA`);
+                  }
+                  return (
+                    <div key={ni} style={{background:MT.card,border:`1px solid ${MT.border}`,
+                      borderLeft:`4px solid ${t.color}`,borderRadius:MT.radius,
+                      marginBottom:8,overflow:'hidden'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:12,padding:'12px 18px',cursor:'pointer'}}
+                        onClick={() => setExpandedNS(isOpen ? null : nsKey)}>
+                        <div style={{flex:1}}>
+                          <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+                            <span style={{fontSize:12,fontWeight:600,color:MT.txt1}}>
+                              {ns.type==='mentor_no_show' ? ns.mentor_email : ns.mentee_email}
+                            </span>
+                            <span style={{padding:'1px 7px',borderRadius:8,fontSize:10,
+                              fontWeight:600,background:t.bg,color:t.color}}>{t.label}</span>
+                          </div>
+                          <div style={{fontSize:11,color:MT.txt4,marginTop:2}}>{ns.time}</div>
+                        </div>
+                        {ns.replies && <span style={{fontSize:11,color:MT.accent}}>💬 Has reply</span>}
+                        <span style={{color:MT.txt4}}>{isOpen?'▲':'▼'}</span>
+                      </div>
+                      {isOpen && (
+                        <div style={{padding:'0 18px 14px',borderTop:`1px solid ${MT.border}`,paddingTop:12}}>
+                          <MTAISummary bullets={aiSummaries[nsKey]} loading={aiLoading[nsKey]} />
+                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
+                            <div style={{fontSize:11,color:MT.txt3}}>
+                              <span style={{color:MT.txt4}}>Mentee: </span>{ns.mentee_email}
+                            </div>
+                            <div style={{fontSize:11,color:MT.txt3}}>
+                              <span style={{color:MT.txt4}}>Mentor: </span>{ns.mentor_email}
+                            </div>
+                          </div>
+                          {ns.replies && (
+                            <div style={{fontSize:11,color:MT.txt3,padding:'8px 10px',
+                              background:'var(--bg-2)',borderRadius:6,fontStyle:'italic'}}>
+                              💬 {ns.replies}
+                            </div>
+                          )}
+                          {ns.slack_url && (
+                            <a href={ns.slack_url} target="_blank" rel="noreferrer"
+                              style={{display:'inline-block',marginTop:8,fontSize:11,
+                                color:MT.accent,textDecoration:'none'}}>
+                              View thread in Slack ↗
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       )}
 
