@@ -1,0 +1,45 @@
+name: Sync Backend to HuggingFace
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'  # only trigger when backend files change
+
+jobs:
+  sync-to-hf:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Push backend to HuggingFace Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+
+          # Clone HF Space
+          git clone https://Bhagwan007:${HF_TOKEN}@huggingface.co/spaces/Bhagwan007/scaler-ops-backend hf-space
+
+          # Copy backend files into HF Space (excluding .env and caches)
+          rsync -av --delete \
+            --exclude='.env' \
+            --exclude='__pycache__/' \
+            --exclude='*.pyc' \
+            --exclude='classifier_cache/' \
+            --exclude='classifier_cache_program/' \
+            --exclude='venv/' \
+            --exclude='.git/' \
+            backend/ hf-space/
+
+          # Push to HF
+          cd hf-space
+          git add .
+          git diff --staged --quiet || git commit -m "sync from GitHub: ${{ github.sha }}"
+          git push
