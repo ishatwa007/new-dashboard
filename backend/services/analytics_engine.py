@@ -100,7 +100,11 @@ def compute_kpis(df: pd.DataFrame, oms_refunds: dict = None) -> dict:
 
     gtn_total    = len(gtn_df)
     gtn_complete = int((gtn_df["sale_status"] == "COMPLETE").sum())
-    gtn_refunded = int((gtn_df.get("refunded", pd.Series(False, index=gtn_df.index)) == True).sum())
+    # Only count refunded from COMPLETE rows — not pending
+    gtn_refunded = int(
+        ((gtn_df.get("refunded", pd.Series(False, index=gtn_df.index)) == True) &
+         (gtn_df["sale_status"] == "COMPLETE")).sum()
+    )
     gtn = _safe_pct(gtn_complete - gtn_refunded, gtn_total) if gtn_total > 0 else 0
 
     # ── Pre/post MnG ─────────────────────────────────────────────────────────
