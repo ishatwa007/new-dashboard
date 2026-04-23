@@ -415,6 +415,35 @@ function Tweaks({val,onChange,onClose}) {
 }
 
 // ── Global Login Gate ────────────────────────────────────────────────────────
+const USER_ROLES = {
+  'ishatwa':  'admin',
+  'chanchal': 'admin',
+  'scaler':   'admin',
+  'classroom':'classroom',
+  'program':  'program',
+};
+
+// Pages each role can access
+const ROLE_PAGES = {
+  'admin':    ['analytics','requests','mentor','classroom','settings'],
+  'classroom':['classroom'],
+  'program':  ['requests','mentor'],
+};
+
+function getRole() {
+  return sessionStorage.getItem('app-role') || 'admin';
+}
+
+function canAccess(page) {
+  const role = getRole();
+  return (ROLE_PAGES[role] || ROLE_PAGES['admin']).includes(page);
+}
+
+function defaultPage() {
+  const role = getRole();
+  return ROLE_PAGES[role]?.[0] || 'analytics';
+}
+
 function LoginGate({ onLogin }) {
   const [user, setUser]   = useState('');
   const [pwd, setPwd]     = useState('');
@@ -432,9 +461,11 @@ function LoginGate({ onLogin }) {
   const handle = () => {
     setLoading(true);
     setTimeout(() => {
-      if (USERS[user.trim().toLowerCase()] === pwd) {
+      const u = user.trim().toLowerCase();
+      if (USERS[u] === pwd) {
         sessionStorage.setItem('app-authed', '1');
-        sessionStorage.setItem('app-user', user.trim().toLowerCase());
+        sessionStorage.setItem('app-user', u);
+        sessionStorage.setItem('app-role', USER_ROLES[u] || 'admin');
         onLogin();
       } else {
         setErr('Incorrect username or password.');
@@ -505,13 +536,20 @@ function App() {
   const _initCohort  = _initCohorts.find(c=>c.id==='apr26') || _initCohorts[0] || {id:'april2026', label:'Apr 2026', size:0};
 
   const [authed, setAuthed]        = useState(()=>sessionStorage.getItem('app-authed')==='1');
-  const [page,setPage]             = useState(()=>localStorage.getItem('scaler-page')||'analytics');
+  const [page,setPage]             = useState(()=>{
+    const saved = localStorage.getItem('scaler-page') || 'analytics';
+    // Make sure saved page is accessible for this role
+    return canAccess(saved) ? saved : defaultPage();
+  });
   const [unlocked,setUnlocked]     = useState(()=>sessionStorage.getItem('req-unlocked')==='1');
   const [mentorUnlocked,setMentorUnlocked] = useState(()=>sessionStorage.getItem('mentor-unlocked')==='1');
   const [pendingCount,setPendingCount] = useState(0);
   const [tweaks,setTweaks]         = useState(TWEAK_DEFAULTS);
   const [tweaksOpen,setTweaksOpen] = useState(false);
   const [cohort, setCohort]        = useState(_initCohort);
+
+  // Safe page setter — ignore if role can't access
+  const goToPage = (p) => { if (canAccess(p)) setPage(p); };
 
   useEffect(()=>{applyTweaks(tweaks);},[]);
   useEffect(()=>{localStorage.setItem('scaler-page',page);},[page]);
@@ -522,24 +560,25 @@ function App() {
   useEffect(()=>{
     const h=(e)=>{
       if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
-      if(e.key==='1') setPage('analytics');
-      if(e.key==='2') setPage('requests');
-      if(e.key==='3') setPage('mentor');
-      if(e.key==='4') setPage('classroom');
+      if(e.key==='1') goToPage('analytics');
+      if(e.key==='2') goToPage('requests');
+      if(e.key==='3') goToPage('mentor');
+      if(e.key==='4') goToPage('classroom');
       if(e.key==='t') setTweaksOpen(o=>!o);
     };
     window.addEventListener('keydown',h);
     return ()=>window.removeEventListener('keydown',h);
   },[]);
 
-  if (!authed) return <LoginGate onLogin={() => setAuthed(true)} />;
+  if (!authed) return <LoginGate onLogin={() => { setAuthed(true); setPage(defaultPage()); }} />;
 
   return (
     <div className="app">
-      <Sidebar page={page} onPage={p=>setPage(p)} pendingCount={page==='requests'&&unlocked?pendingCount:0} />
+      <Sidebar page={page} onPage={goToPage} pendingCount={page==='requests'&&unlocked?pendingCount:0}
+        canAccess={canAccess} role={getRole()} />
       <div className="main">
-        {page==='analytics' && <ErrorBoundary><AnalyticsPage cohort={cohort} setCohort={setCohort} /></ErrorBoundary>}
-        {page==='requests' && !unlocked && (
+        {canAccess('analytics') && page==='analytics' && <ErrorBoundary><AnalyticsPage cohort={cohort} setCohort={setCohort} /></ErrorBoundary>}
+        {canAccess('requests') && page==='requests' && !unlocked && (
           <>
             <Header title="Requests & Approvals" subtitle="Restricted"
               cohort={cohort} setCohort={setCohort} compare="Single" setCompare={()=>{}}
@@ -547,8 +586,8 @@ function App() {
             <PasswordGate onUnlock={()=>{setUnlocked(true);sessionStorage.setItem('req-unlocked','1');}} />
           </>
         )}
-        {page==='requests' && unlocked && <RequestsPage pendingCount={pendingCount} setPendingCount={setPendingCount} cohort={cohort} setCohort={setCohort} />}
-        {page==='mentor' && !mentorUnlocked && (
+        {canAccess('requests') && page==='requests' && unlocked && <RequestsPage pendingCount={pendingCount} setPendingCount={setPendingCount} cohort={cohort} setCohort={setCohort} />}
+        {canAccess('mentor') && page==='mentor' && !mentorUnlocked && (
           <>
             <Header title="Mentor Tracking" subtitle="Restricted"
               cohort={cohort} setCohort={setCohort} compare="Single" setCompare={()=>{}}
@@ -556,7 +595,7 @@ function App() {
             <PasswordGate onUnlock={()=>{setMentorUnlocked(true);sessionStorage.setItem('mentor-unlocked','1');}} />
           </>
         )}
-        {page==='mentor' && mentorUnlocked && (
+        {canAccess('mentor') && page==='mentor' && mentorUnlocked && (
           <ErrorBoundary>
             <Header title="Mentor Tracking" subtitle="No-shows, repeat offenders & sessions"
               cohort={cohort} setCohort={setCohort} compare="Single" setCompare={()=>{}}
@@ -566,7 +605,7 @@ function App() {
               : <div style={{padding:'60px',textAlign:'center',color:'var(--fg-2)'}}>Loading Mentor page...</div>}
           </ErrorBoundary>
         )}
-        {page==='classroom' && (
+        {canAccess('classroom') && page==='classroom' && (
           <ErrorBoundary>
             <Header title="Classroom" subtitle="Batch ratings, low raters & persona"
               cohort={cohort} setCohort={setCohort} compare="Single" setCompare={()=>{}}
@@ -576,7 +615,7 @@ function App() {
               : <div style={{padding:'60px',textAlign:'center',color:'var(--fg-2)'}}>Loading Classroom...</div>}
           </ErrorBoundary>
         )}
-        {page==='settings' && <SettingsPage onBack={()=>setPage('analytics')} />}
+        {page==='settings' && <SettingsPage onBack={()=>goToPage(defaultPage())} />}
       </div>
       {tweaksOpen && <Tweaks val={tweaks} onChange={setTweaks} onClose={()=>setTweaksOpen(false)} />}
     </div>

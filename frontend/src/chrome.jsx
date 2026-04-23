@@ -2,7 +2,19 @@
 
 const { useState: useStateC, useEffect: useEffectC, useRef: useRefC } = React;
 
-window.Sidebar = ({ page, onPage, pendingCount }) => {
+window.Sidebar = ({ page, onPage, pendingCount, canAccess, role }) => {
+  const user = sessionStorage.getItem('app-user') || '';
+  const roleLabel = { admin: 'Admin', classroom: 'Classroom', program: 'Program' }[role] || role;
+
+  // Renumber kbd shortcuts based on visible pages
+  const allPages = [
+    { id:'analytics', label:'Analytics',  icon:'analytics' },
+    { id:'requests',  label:'Requests',   icon:'requests'  },
+    { id:'mentor',    label:'Mentor',     icon:'requests'  },
+    { id:'classroom', label:'Classroom',  icon:'graph'     },
+  ];
+  const visible = allPages.filter(p => !canAccess || canAccess(p.id));
+
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -14,38 +26,30 @@ window.Sidebar = ({ page, onPage, pendingCount }) => {
       </div>
 
       <div className="nav-section-label">Workspace</div>
-      <div className={"nav-item " + (page === 'analytics' ? 'active' : '')} onClick={() => onPage('analytics')}>
-        <Icon name="analytics" className="ico" />
-        <span>Analytics</span>
-        <span className="nav-kbd">1</span>
-      </div>
-      <div className={"nav-item " + (page === 'requests' ? 'active' : '')} onClick={() => onPage('requests')}>
-        <Icon name="requests" className="ico" />
-        <span>Requests</span>
-        {pendingCount ? <span className="nav-badge">{pendingCount}</span> : <span className="nav-kbd">2</span>}
-      </div>
-      <div className={"nav-item " + (page === 'mentor' ? 'active' : '')} onClick={() => onPage('mentor')}>
-        <Icon name="requests" className="ico" />
-        <span>Mentor</span>
-        <span className="nav-kbd">3</span>
-      </div>
-      <div className={"nav-item " + (page === 'classroom' ? 'active' : '')} onClick={() => onPage('classroom')}>
-        <Icon name="graph" className="ico" />
-        <span>Classroom</span>
-        <span className="nav-kbd">4</span>
-      </div>
+      {visible.map((p, i) => (
+        <div key={p.id} className={"nav-item " + (page === p.id ? 'active' : '')} onClick={() => onPage(p.id)}>
+          <Icon name={p.icon} className="ico" />
+          <span>{p.label}</span>
+          {p.id === 'requests' && pendingCount
+            ? <span className="nav-badge">{pendingCount}</span>
+            : <span className="nav-kbd">{i + 1}</span>
+          }
+        </div>
+      ))}
 
       <div className="nav-section-label" style={{ marginTop: 'auto' }}></div>
-      <div className={"nav-item " + (page === 'settings' ? 'active' : '')} onClick={() => onPage('settings')}>
-        <Icon name="settings" className="ico" />
-        <span>Settings</span>
-      </div>
+      {(!canAccess || canAccess('settings')) && (
+        <div className={"nav-item " + (page === 'settings' ? 'active' : '')} onClick={() => onPage('settings')}>
+          <Icon name="settings" className="ico" />
+          <span>Settings</span>
+        </div>
+      )}
 
       <div className="sidebar-footer">
-        <div className="avatar">IC</div>
+        <div className="avatar">{user.slice(0,2).toUpperCase()||'IC'}</div>
         <div className="avatar-info">
-          <div className="n">Ishatwa Chaubey</div>
-          <div className="r">VP</div>
+          <div className="n">{user || 'Ishatwa'}</div>
+          <div className="r">{roleLabel}</div>
         </div>
       </div>
     </aside>
