@@ -366,9 +366,17 @@ async def get_ai_summary(req: SummaryRequest):
     if not req.items:
         return {"bullets": []}
 
-    prompt = (
-        f"These are {req.context}. Give exactly 3 concise bullet points (under 15 words each) "
-        f"identifying patterns or concerns:\n" +
+    system = (
+        "You are an ops analyst at an edtech company. "
+        "Respond ONLY with exactly 3 bullet points. "
+        "Each bullet must be under 12 words. "
+        "Be specific and factual. "
+        "Do NOT write: 'DNP', 'N/A', 'No data', preambles, headers, or any text outside the 3 bullets. "
+        "Format: one bullet per line starting with a dash."
+    )
+
+    user = (
+        f"Analyse these {req.context} and identify the key patterns:\n" +
         "\n".join(f"- {item}" for item in req.items[:20])
     )
 
@@ -379,13 +387,21 @@ async def get_ai_summary(req: SummaryRequest):
                 r = await client.post(
                     "https://api.openai.com/v1/chat/completions",
                     headers={"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"},
-                    json={"model": "gpt-4o-mini", "max_tokens": 200,
-                          "messages": [{"role": "user", "content": prompt}]}
+                    json={
+                        "model": "gpt-4o-mini",
+                        "max_tokens": 150,
+                        "temperature": 0.3,
+                        "messages": [
+                            {"role": "system", "content": system},
+                            {"role": "user",   "content": user}
+                        ]
+                    }
                 )
                 if r.status_code == 200:
                     text = r.json()["choices"][0]["message"]["content"]
-                    bullets = [l.strip().lstrip("-•* ") for l in text.split("\n") if len(l.strip()) > 5][:3]
-                    return {"bullets": bullets}
+                    bullets = _parse_bullets(text)
+                    if bullets:
+                        return {"bullets": bullets}
         except Exception as e:
             logger.warning(f"OpenAI summary error: {e}")
 
@@ -396,17 +412,42 @@ async def get_ai_summary(req: SummaryRequest):
                 r = await client.post(
                     "https://api.groq.com/openai/v1/chat/completions",
                     headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
-                    json={"model": "llama-3.1-8b-instant", "max_tokens": 200,
-                          "messages": [{"role": "user", "content": prompt}]}
+                    json={
+                        "model": "llama-3.1-8b-instant",
+                        "max_tokens": 150,
+                        "temperature": 0.3,
+                        "messages": [
+                            {"role": "system", "content": system},
+                            {"role": "user",   "content": user}
+                        ]
+                    }
                 )
                 if r.status_code == 200:
                     text = r.json()["choices"][0]["message"]["content"]
-                    bullets = [l.strip().lstrip("-•* ") for l in text.split("\n") if len(l.strip()) > 5][:3]
-                    return {"bullets": bullets}
+                    bullets = _parse_bullets(text)
+                    if bullets:
+                        return {"bullets": bullets}
         except Exception as e:
             logger.warning(f"Groq summary error: {e}")
 
     return {"bullets": []}
+
+
+def _parse_bullets(text: str) -> list:
+    """Extract clean bullet points from AI response."""
+    lines = text.strip().split("\n")
+    bullets = []
+    skip = {"dnp", "n/a", "no data", "none", "not available", "no information"}
+    for line in lines:
+        clean = line.strip().lstrip("-•*123456789. ").strip()
+        if len(clean) < 5:
+            continue
+        if any(s in clean.lower() for s in skip):
+            continue
+        bullets.append(clean)
+        if len(bullets) == 3:
+            break
+    return bullets
 
 
 # =============================================================================
