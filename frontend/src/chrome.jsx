@@ -20,7 +20,7 @@ window.Sidebar = ({ page, onPage, pendingCount, canAccess, role }) => {
       <div className="brand">
         <div className="brand-mark">S</div>
         <div className="brand-text">
-          <div className="brand-title">Refund Audit</div>
+          <div className="brand-title">Onboarding Dashboard</div>
           <div className="brand-sub">scaler.ops</div>
         </div>
       </div>
