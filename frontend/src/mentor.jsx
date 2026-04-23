@@ -195,27 +195,19 @@ function MentorPage({ cohort }) {
 
   const generateSummary = async (key, sessions) => {
     if (aiSummaries[key] || aiLoading[key]) return;
-    const parts = sessions.map(s =>
+    const items = sessions.map(s =>
       [s.agenda, s.reason_category, s.reason_detail].filter(Boolean).join(' — ')
     ).filter(Boolean);
-    if (!parts.length) return;
+    if (!items.length) return;
     setAiLoading(p => ({...p,[key]:true}));
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          model:'claude-sonnet-4-20250514',
-          max_tokens:250,
-          messages:[{role:'user',content:
-            `These are no-show sessions with reasons. Give 3 concise bullet points (under 15 words each) identifying patterns:\n${parts.map(p=>`- ${p}`).join('\n')}`
-          }]
-        })
+      const res = await fetch(`${window.API_BASE || 'https://new-dashboard-id87.onrender.com'}/api/ai/summary`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items, context: 'mentor/mentee no-show sessions' })
       });
       const json = await res.json();
-      const text = (json.content||[]).map(c=>c.text||'').join('');
-      const bullets = text.split('\n').map(l=>l.trim().replace(/^[-•*]\s*/,'')).filter(l=>l.length>5).slice(0,3);
-      setAiSummaries(p => ({...p,[key]:bullets}));
+      setAiSummaries(p => ({...p,[key]: json.bullets || []}));
     } catch { setAiSummaries(p => ({...p,[key]:[]})); }
     finally { setAiLoading(p => ({...p,[key]:false})); }
   };

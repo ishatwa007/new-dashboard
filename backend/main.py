@@ -351,6 +351,65 @@ async def get_mentor_noshows(cohort_id: str):
 
 
 # =============================================================================
+# AI SUMMARY — proxies OpenAI/Groq so frontend doesn't need keys
+# =============================================================================
+
+class SummaryRequest(BaseModel):
+    items: list
+    context: str = "no-show sessions"
+
+@app.post("/api/ai/summary")
+async def get_ai_summary(req: SummaryRequest):
+    from config import OPENAI_API_KEY, GROQ_API_KEY, AI_PROVIDER
+    import httpx
+
+    if not req.items:
+        return {"bullets": []}
+
+    prompt = (
+        f"These are {req.context}. Give exactly 3 concise bullet points (under 15 words each) "
+        f"identifying patterns or concerns:\n" +
+        "\n".join(f"- {item}" for item in req.items[:20])
+    )
+
+    # Try OpenAI first
+    if OPENAI_API_KEY and AI_PROVIDER in ("openai", "auto", ""):
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                r = await client.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"},
+                    json={"model": "gpt-4o-mini", "max_tokens": 200,
+                          "messages": [{"role": "user", "content": prompt}]}
+                )
+                if r.status_code == 200:
+                    text = r.json()["choices"][0]["message"]["content"]
+                    bullets = [l.strip().lstrip("-•* ") for l in text.split("\n") if len(l.strip()) > 5][:3]
+                    return {"bullets": bullets}
+        except Exception as e:
+            logger.warning(f"OpenAI summary error: {e}")
+
+    # Fall back to Groq
+    if GROQ_API_KEY:
+        try:
+            async with httpx.AsyncClient(timeout=12) as client:
+                r = await client.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                    json={"model": "llama-3.1-8b-instant", "max_tokens": 200,
+                          "messages": [{"role": "user", "content": prompt}]}
+                )
+                if r.status_code == 200:
+                    text = r.json()["choices"][0]["message"]["content"]
+                    bullets = [l.strip().lstrip("-•* ") for l in text.split("\n") if len(l.strip()) > 5][:3]
+                    return {"bullets": bullets}
+        except Exception as e:
+            logger.warning(f"Groq summary error: {e}")
+
+    return {"bullets": []}
+
+
+# =============================================================================
 # SETTINGS / COHORT MANAGEMENT
 # =============================================================================
 
