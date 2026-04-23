@@ -189,9 +189,7 @@ async def get_analytics(
 
     loop = asyncio.get_event_loop()
     persona_df  = await loop.run_in_executor(None, load_persona_sheet, cohort_id)
-    oms_refunds = await loop.run_in_executor(None, load_oms_refunds, cohort_id)
-    analytics   = build_cohort_analytics(cohort_id, _state.funnel_df, persona_df,
-                                          oms_refunds=oms_refunds)
+    analytics   = build_cohort_analytics(cohort_id, _state.funnel_df, persona_df)
 
     if not analytics:
         raise HTTPException(404, f"No data found for cohort: {cohort_id}")

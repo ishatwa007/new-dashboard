@@ -60,55 +60,37 @@ def _is_gtn_program(prog: str) -> bool:
 
 # -- cohort-level KPIs --------------------------------------------------------
 
-# -- cohort-level KPIs --------------------------------------------------------
-
 def compute_kpis(df: pd.DataFrame, oms_refunds: dict = None) -> dict:
     """
-    oms_refunds: {email_lower: True} from OMS sheet (Refund on Mail = 1).
-    If provided, this is the sole source of truth for refunds across all KPIs.
-    Falls back to funnel fields if not provided.
+    Single source of truth: funnel AR column (refunded == True).
+    GTN = (Complete - Refunded from Complete) / Total × 100
+    oms_refunds param kept for backward compat but ignored.
     """
-    import logging
-    log = logging.getLogger(__name__)
-
-    total        = len(df)
-    complete     = len(df[df["sale_status"] == "COMPLETE"])
-    pending      = len(df[df["sale_status"] == "PENDING"])
+    total    = len(df)
+    complete = len(df[df["sale_status"] == "COMPLETE"])
+    pending  = len(df[df["sale_status"] == "PENDING"])
     pct_complete = _safe_pct(complete, total)
 
-    # ── Refund requested (from funnel — always available) ────────────────────
-    is_req    = df["refund_requested"] == True
+    # ── Refund signal: AR column = True ──────────────────────────────────────
+    is_refunded = df.get("refunded", pd.Series(False, index=df.index)) == True
+    is_complete = df["sale_status"] == "COMPLETE"
+    is_pending  = df["sale_status"] == "PENDING"
+
+    refunded    = int(is_refunded.sum())
+    refunded_c  = int((is_refunded & is_complete).sum())
+    refunded_p  = int((is_refunded & is_pending).sum())
+
+    # ── Refund requested (separate signal for tracking pipeline) ─────────────
+    is_req    = df.get("refund_requested", pd.Series(False, index=df.index)) == True
     ref_req   = int(is_req.sum())
-    ref_req_c = int((is_req & (df["sale_status"] == "COMPLETE")).sum())
-    ref_p     = int((is_req & (df["sale_status"] == "PENDING")).sum())
-
-    # ── Actually refunded — OMS is source of truth ───────────────────────────
-    if oms_refunds:
-        is_refunded = df["email"].apply(
-            lambda e: bool(oms_refunds.get(str(e).strip().lower(), False))
-        )
-        log.info(f"compute_kpis: OMS refunds={is_refunded.sum()} / {total}")
-    elif "oms_refunded" in df.columns:
-        # Use pre-attached OMS column (for sub-df calls from hierarchy/programs)
-        is_refunded = df["oms_refunded"] == True
-    else:
-        # Fallback to funnel mentee_status or refunded bool
-        if "mentee_status" in df.columns:
-            is_refunded = df["mentee_status"].str.strip().str.lower() == "refunded"
-        else:
-            is_refunded = df.get("refunded", pd.Series(False, index=df.index)) == True
-
-    refunded   = int(is_refunded.sum())
-    refunded_c = int((is_refunded & (df["sale_status"] == "COMPLETE")).sum())
-    retained_c = ref_req_c - refunded_c
-    under_ret  = ref_req - refunded
-    retained_pct = _safe_pct(retained_c, ref_req_c) if ref_req_c > 0 else 0
+    ref_req_c = int((is_req & is_complete).sum())
+    ref_p     = int((is_req & is_pending).sum())
 
     # ── Refund rates ─────────────────────────────────────────────────────────
     refund_rate_total    = _safe_pct(refunded, total)
     refund_rate_complete = _safe_pct(refunded_c, complete)
 
-    # ── GTN — Academy, DSML, DevOps, AIML only ───────────────────────────────
+    # ── GTN = (Complete - Refunded from Complete) / Total × 100 ──────────────
     if "intake_program" in df.columns:
         gtn_df = df[df["intake_program"].apply(_is_gtn_program)]
     elif "current_program" in df.columns:
@@ -116,17 +98,13 @@ def compute_kpis(df: pd.DataFrame, oms_refunds: dict = None) -> dict:
     else:
         gtn_df = df
 
-    gtn_complete = len(gtn_df[gtn_df["sale_status"] == "COMPLETE"])
-    if oms_refunds:
-        gtn_refunded = int(gtn_df["email"].apply(
-            lambda e: bool(oms_refunds.get(str(e).strip().lower(), False))
-        ).sum())
-    else:
-        gtn_refunded = int(is_refunded[gtn_df.index].sum()) if len(gtn_df) > 0 else 0
-    gtn = _safe_pct(gtn_complete - gtn_refunded, len(gtn_df)) if len(gtn_df) > 0 else 0
+    gtn_total    = len(gtn_df)
+    gtn_complete = int((gtn_df["sale_status"] == "COMPLETE").sum())
+    gtn_refunded = int((gtn_df.get("refunded", pd.Series(False, index=gtn_df.index)) == True).sum())
+    gtn = _safe_pct(gtn_complete - gtn_refunded, gtn_total) if gtn_total > 0 else 0
 
     # ── Pre/post MnG ─────────────────────────────────────────────────────────
-    refund_df = df[is_req].copy()
+    refund_df = df[is_refunded].copy()
     if not refund_df.empty:
         refund_df["mng_timing"] = refund_df.apply(_mng_timing, axis=1)
         pre_mng  = len(refund_df[refund_df["mng_timing"] == "pre_mng"])
@@ -141,35 +119,40 @@ def compute_kpis(df: pd.DataFrame, oms_refunds: dict = None) -> dict:
 
     # ── Probable ─────────────────────────────────────────────────────────────
     probable_total    = len(df[df["probable_id"].notna()]) if "probable_id" in df.columns else 0
-    probable_refunded = len(df[(df["probable_id"].notna()) & is_req]) if "probable_id" in df.columns else 0
+    probable_refunded = int((is_refunded & df["probable_id"].notna()).sum()) if "probable_id" in df.columns else 0
+
+    retained_c   = ref_req_c - refunded_c
+    retained_pct = _safe_pct(retained_c, ref_req_c) if ref_req_c > 0 else 0
+    under_ret    = ref_req - refunded
 
     return {
-        "total":              total,
-        "complete":           complete,
-        "pending":            pending,
-        "pct_complete":       pct_complete,
-        "refund_rate_total":  refund_rate_total,
-        "refund_rate_complete": refund_rate_complete,
-        "ref_total":          ref_req,
-        "ref_c":              refunded_c,
-        "ref_req_c":          ref_req_c,
-        "refunded":           refunded,
-        "under_ret":          under_ret,
-        "ref_p":              ref_p,
-        "retained":           retained_c,
-        "retained_pct":       retained_pct,
-        "gtn":                gtn,
-        "pct_total":          _safe_pct(ref_req, total),
-        "pct_c":              _safe_pct(refunded_c, complete),
-        "pct_req_c":          _safe_pct(ref_req_c, complete),
-        "pre_mng":            pre_mng,
-        "post_mng":           post_mng,
-        "pct_pre_mng":        _safe_pct(pre_mng, ref_req),
-        "pct_post_mng":       _safe_pct(post_mng, ref_req),
-        "fec_refunds":        fec_refunds,
-        "pct_fec":            _safe_pct(fec_refunds, ref_req),
-        "probable_total":     probable_total,
-        "probable_refunded":  probable_refunded,
+        "total":                  total,
+        "complete":               complete,
+        "pending":                pending,
+        "pct_complete":           pct_complete,
+        "refunded":               refunded,
+        "refunded_c":             refunded_c,
+        "refund_rate_total":      refund_rate_total,
+        "refund_rate_complete":   refund_rate_complete,
+        "ref_total":              ref_req,
+        "ref_c":                  refunded_c,
+        "ref_req_c":              ref_req_c,
+        "under_ret":              under_ret,
+        "ref_p":                  ref_p,
+        "retained":               retained_c,
+        "retained_pct":           retained_pct,
+        "gtn":                    gtn,
+        "pct_total":              _safe_pct(ref_req, total),
+        "pct_c":                  _safe_pct(refunded_c, complete),
+        "pct_req_c":              _safe_pct(ref_req_c, complete),
+        "pre_mng":                pre_mng,
+        "post_mng":               post_mng,
+        "pct_pre_mng":            _safe_pct(pre_mng, ref_req),
+        "pct_post_mng":           _safe_pct(post_mng, ref_req),
+        "fec_refunds":            fec_refunds,
+        "pct_fec":                _safe_pct(fec_refunds, ref_req),
+        "probable_total":         probable_total,
+        "probable_refunded":      probable_refunded,
         "pct_probable_converted": _safe_pct(probable_refunded, probable_total),
     }
 
@@ -558,7 +541,6 @@ def build_cohort_analytics(cohort_id: str,
                             funnel_df: pd.DataFrame,
                             persona_df: pd.DataFrame,
                             oms_refunds: dict = None) -> dict:
-    # Import here to avoid circular
     from services.reason_classifier import compute_classified_reasons
 
     df = funnel_df[funnel_df["cohort_id"] == cohort_id].copy()
@@ -569,26 +551,18 @@ def build_cohort_analytics(cohort_id: str,
     df["week_of_sale"] = df["week_of_sale"].str.lower().str.strip()
     df = merge_persona_reasons(df, persona_df)
 
-    # Attach OMS refund flag as a column so hierarchy/program breakdowns use it
-    if oms_refunds:
-        df["oms_refunded"] = df["email"].apply(
-            lambda e: bool(oms_refunds.get(str(e).strip().lower(), False))
-        )
-    else:
-        df["oms_refunded"] = df.get("refunded", pd.Series(False, index=df.index)) == True
-
     return {
-        "cohort_id":          cohort_id,
-        "kpis":               compute_kpis(df, oms_refunds=oms_refunds),
-        "programs":           compute_programs(df),
-        "weeks":              compute_weeks(df),
-        "hierarchy":          compute_hierarchy(df),
-        "engagement":         compute_engagement(df),
-        "persona_breakdown":  compute_persona_breakdown(df),
-        "ctc_breakdown":      compute_ctc(df),
-        "experience_breakdown": compute_experience(df),
-        "program_refunds":    compute_program_refunds(df),
-        "source_breakdown":   compute_source(df),
-        "psas":               compute_psas(df),
-        "reasons":            compute_classified_reasons(df, persona_df),
+        "cohort_id":              cohort_id,
+        "kpis":                   compute_kpis(df),
+        "programs":               compute_programs(df),
+        "weeks":                  compute_weeks(df),
+        "hierarchy":              compute_hierarchy(df),
+        "engagement":             compute_engagement(df),
+        "persona_breakdown":      compute_persona_breakdown(df),
+        "ctc_breakdown":          compute_ctc(df),
+        "experience_breakdown":   compute_experience(df),
+        "program_refunds":        compute_program_refunds(df),
+        "source_breakdown":       compute_source(df),
+        "psas":                   compute_psas(df),
+        "reasons":                compute_classified_reasons(df, persona_df),
     }
