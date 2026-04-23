@@ -450,22 +450,31 @@ function LoginGate({ onLogin }) {
   const [err, setErr]     = useState('');
   const [loading, setLoading] = useState(false);
 
-  const USERS = {
-    'scaler':   'ops2026',
-    'ishatwa':  'scaler@123',
-    'chanchal': 'scaler@123',
-    'classroom':'class2026',
-    'program':  'prog2026',
+  const DEFAULT_USERS = {
+    'scaler':   { password: 'ops2026',    role: 'admin' },
+    'ishatwa':  { password: 'scaler@123', role: 'admin' },
+    'chanchal': { password: 'scaler@123', role: 'admin' },
+    'classroom':{ password: 'class2026',  role: 'classroom' },
+    'program':  { password: 'prog2026',   role: 'program' },
+  };
+
+  const getUsers = () => {
+    try {
+      const stored = localStorage.getItem('scaler_users');
+      return stored ? JSON.parse(stored) : DEFAULT_USERS;
+    } catch { return DEFAULT_USERS; }
   };
 
   const handle = () => {
     setLoading(true);
     setTimeout(() => {
-      const u = user.trim().toLowerCase();
-      if (USERS[u] === pwd) {
+      const u     = user.trim().toLowerCase();
+      const users = getUsers();
+      const match = users[u];
+      if (match && match.password === pwd) {
         sessionStorage.setItem('app-authed', '1');
         sessionStorage.setItem('app-user', u);
-        sessionStorage.setItem('app-role', USER_ROLES[u] || 'admin');
+        sessionStorage.setItem('app-role', match.role || 'admin');
         onLogin();
       } else {
         setErr('Incorrect username or password.');

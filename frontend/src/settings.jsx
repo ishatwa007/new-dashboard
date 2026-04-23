@@ -2,7 +2,36 @@
 
 const { useState: useSet, useEffect: useSetE } = React;
 
+// User management stored in sessionStorage (persists for session, survives page reload)
+// For persistence across sessions, stored in localStorage under 'scaler_users'
+const DEFAULT_USERS = {
+  'ishatwa':  { password: 'scaler@123', role: 'admin' },
+  'chanchal': { password: 'scaler@123', role: 'admin' },
+  'scaler':   { password: 'ops2026',    role: 'admin' },
+  'classroom':{ password: 'class2026',  role: 'classroom' },
+  'program':  { password: 'prog2026',   role: 'program' },
+};
+
+function loadUsers() {
+  try {
+    const stored = localStorage.getItem('scaler_users');
+    return stored ? JSON.parse(stored) : DEFAULT_USERS;
+  } catch { return DEFAULT_USERS; }
+}
+
+function saveUsers(users) {
+  localStorage.setItem('scaler_users', JSON.stringify(users));
+  // Patch the live USERS map so login works without reload
+  window._SCALER_USERS = users;
+}
+
+window.getScalerUsers = loadUsers;
+
 window.SettingsPage = ({ onBack }) => {
+  const currentUser = sessionStorage.getItem('app-user') || '';
+  const currentRole = sessionStorage.getItem('app-role') || 'admin';
+  const isAdmin     = currentRole === 'admin';
+
   const [cohorts, setCohorts]       = useSet((window.MOCK && window.MOCK.settingsCohorts) || []);
   const [showAdd, setShowAdd]       = useSet(false);
   const [newCoh, setNewCoh]         = useSet({ name: '', funnel: '', tracker: '' });
@@ -13,6 +42,15 @@ window.SettingsPage = ({ onBack }) => {
   const [saveToast, setSaveToast]   = useSet(null);
   const [psTrackers, setPsTrackers] = useSet([]);
   const [psLoading, setPsLoading]   = useSet(true);
+
+  // User management state
+  const [users, setUsers]           = useSet(loadUsers);
+  const [newUsername, setNewUsername] = useSet('');
+  const [newPassword, setNewPassword] = useSet('');
+  const [newRole, setNewRole]         = useSet('classroom');
+  const [editingUser, setEditingUser] = useSet(null);
+  const [editPwd, setEditPwd]         = useSet('');
+  const [editRole, setEditRole]       = useSet('');
 
   useSetE(() => {
     const base = window.API_BASE || 'http://localhost:8000';
@@ -37,6 +75,41 @@ window.SettingsPage = ({ onBack }) => {
     setTestResult('sending');
     setTimeout(() => setTestResult('ok'), 900);
   };
+
+  const addUser = () => {
+    if (!newUsername.trim() || !newPassword.trim()) return;
+    const u = newUsername.trim().toLowerCase();
+    const updated = { ...users, [u]: { password: newPassword, role: newRole } };
+    setUsers(updated);
+    saveUsers(updated);
+    setNewUsername(''); setNewPassword(''); setNewRole('classroom');
+    setSaveToast(`User '${u}' added`);
+  };
+
+  const removeUser = (username) => {
+    if (username === currentUser) { setSaveToast("Can't remove yourself"); return; }
+    if (['ishatwa','chanchal'].includes(username) && currentUser !== 'ishatwa') {
+      setSaveToast("Only ishatwa can remove admin users"); return;
+    }
+    const updated = { ...users };
+    delete updated[username];
+    setUsers(updated);
+    saveUsers(updated);
+    setSaveToast(`User '${username}' removed`);
+  };
+
+  const saveUserEdit = (username) => {
+    const updated = { ...users };
+    if (editPwd) updated[username] = { ...updated[username], password: editPwd };
+    if (editRole) updated[username] = { ...updated[username], role: editRole };
+    setUsers(updated);
+    saveUsers(updated);
+    setEditingUser(null); setEditPwd(''); setEditRole('');
+    setSaveToast(`User '${username}' updated`);
+  };
+
+  const ROLE_LABELS = { admin: 'Admin (all pages)', classroom: 'Classroom only', program: 'Requests + Mentor' };
+  const ROLE_COLORS = { admin: 'var(--indigo)', classroom: 'var(--green)', program: 'var(--amber)' };
 
   return (
     <div className="settings-wrap">
@@ -181,31 +254,133 @@ window.SettingsPage = ({ onBack }) => {
         </div>
       </div>
 
-      {/* Security */}
-      <div className="settings-section">
-        <div className="settings-section-head">
-          <h3>Security</h3>
-          <p>Manager password for Requests and Mentor pages. Default: <code style={{ fontFamily: 'var(--mono)', fontSize: 11 }}>2026</code></p>
+      {/* User Management — admin only */}
+      {isAdmin && (
+        <div className="settings-section">
+          <div className="settings-section-head">
+            <h3>User Management</h3>
+            <p>Add, remove or update dashboard users and their access levels.</p>
+          </div>
+          <div className="settings-body">
+
+            {/* Existing users */}
+            <div style={{ marginBottom: 20 }}>
+              {Object.entries(users).map(([username, info]) => (
+                <div key={username} style={{ display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 14px', background: 'var(--bg)', border: '1px solid var(--border)',
+                  borderRadius: 8, marginBottom: 8 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--indigo-soft)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 12, fontWeight: 700, color: 'var(--indigo)', flexShrink: 0 }}>
+                    {username.slice(0,2).toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg)' }}>{username}</div>
+                    <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 7px', borderRadius: 8,
+                      background: (ROLE_COLORS[info.role] || 'var(--fg-4)') + '22',
+                      color: ROLE_COLORS[info.role] || 'var(--fg-4)' }}>
+                      {ROLE_LABELS[info.role] || info.role}
+                    </span>
+                  </div>
+
+                  {editingUser === username ? (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input className="input" type="password" placeholder="New password"
+                        value={editPwd} onChange={e => setEditPwd(e.target.value)}
+                        style={{ width: 130, margin: 0 }} />
+                      <select className="input" value={editRole || info.role}
+                        onChange={e => setEditRole(e.target.value)}
+                        style={{ width: 130, margin: 0 }}>
+                        <option value="admin">Admin</option>
+                        <option value="classroom">Classroom</option>
+                        <option value="program">Program</option>
+                      </select>
+                      <button className="btn primary" style={{ height: 30, fontSize: 11 }}
+                        onClick={() => saveUserEdit(username)}>Save</button>
+                      <button className="btn" style={{ height: 30, fontSize: 11 }}
+                        onClick={() => { setEditingUser(null); setEditPwd(''); setEditRole(''); }}>Cancel</button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button className="btn" style={{ height: 28, fontSize: 11 }}
+                        onClick={() => { setEditingUser(username); setEditRole(info.role); }}>
+                        Edit
+                      </button>
+                      {username !== currentUser && (
+                        <button className="btn" style={{ height: 28, fontSize: 11, color: 'var(--red)' }}
+                          onClick={() => removeUser(username)}>
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Add new user */}
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--fg-3)',
+                textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
+                Add New User
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 10, alignItems: 'end' }}>
+                <div className="field" style={{ margin: 0 }}>
+                  <label>Username</label>
+                  <input className="input" placeholder="e.g. vishnu" value={newUsername}
+                    onChange={e => setNewUsername(e.target.value)} />
+                </div>
+                <div className="field" style={{ margin: 0 }}>
+                  <label>Password</label>
+                  <input className="input" type="password" placeholder="At least 6 chars" value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)} />
+                </div>
+                <div className="field" style={{ margin: 0 }}>
+                  <label>Role</label>
+                  <select className="input" value={newRole} onChange={e => setNewRole(e.target.value)}>
+                    <option value="admin">Admin (all pages)</option>
+                    <option value="classroom">Classroom only</option>
+                    <option value="program">Requests + Mentor</option>
+                  </select>
+                </div>
+                <button className="btn primary" style={{ height: 32 }}
+                  onClick={addUser} disabled={!newUsername.trim() || !newPassword.trim()}>
+                  Add User
+                </button>
+              </div>
+            </div>
+
+          </div>
         </div>
-        <div className="settings-body">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-            <div className="field" style={{ margin: 0 }}>
-              <label><Icon name="key" size={11} style={{ verticalAlign: '-2px' }} /> New password</label>
-              <input className="input" type="password" placeholder="At least 8 characters" value={pwd} onChange={e => setPwd(e.target.value)} />
-            </div>
-            <div className="field" style={{ margin: 0 }}>
-              <label>Confirm password</label>
-              <input className="input" type="password" placeholder="Re-enter password" value={pwd2} onChange={e => setPwd2(e.target.value)} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-              <button className="btn primary" style={{ height: 32 }}
-                onClick={() => { setPwd(''); setPwd2(''); setSaveToast('Update REQ_PASSWORD in the HTML file to persist'); }}>
-                <Icon name="check" size={12} /> Update
-              </button>
+      )}
+
+      {/* Security */}
+      {isAdmin && (
+        <div className="settings-section">
+          <div className="settings-section-head">
+            <h3>Security</h3>
+            <p>Manager password for Requests and Mentor pages. Default: <code style={{ fontFamily: 'var(--mono)', fontSize: 11 }}>2026</code></p>
+          </div>
+          <div className="settings-body">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+              <div className="field" style={{ margin: 0 }}>
+                <label><Icon name="key" size={11} style={{ verticalAlign: '-2px' }} /> New password</label>
+                <input className="input" type="password" placeholder="At least 8 characters" value={pwd} onChange={e => setPwd(e.target.value)} />
+              </div>
+              <div className="field" style={{ margin: 0 }}>
+                <label>Confirm password</label>
+                <input className="input" type="password" placeholder="Re-enter password" value={pwd2} onChange={e => setPwd2(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                <button className="btn primary" style={{ height: 32 }}
+                  onClick={() => { setPwd(''); setPwd2(''); setSaveToast('Update REQ_PASSWORD in the HTML file to persist'); }}>
+                  <Icon name="check" size={12} /> Update
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {saveToast && <Toast msg={saveToast} onDone={() => setSaveToast(null)} />}
     </div>
