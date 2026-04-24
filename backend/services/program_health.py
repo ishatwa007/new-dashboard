@@ -187,12 +187,14 @@ def summarize_lsm_notes(notes_list: List[str], max_bullets: int = 4) -> List[str
         return cached.get("bullets", [])
 
     system = (
-        "You are analyzing learner feedback on a class. Read the notes and return "
-        f"{max_bullets} concise bullet points summarizing the common themes. "
-        "Each bullet MUST be under 12 words. Use plain factual language. "
-        "Output format: one bullet per line, starting with a dash. No preamble, no numbering."
+        "You are reading PSA notes about learners who rated a class low. "
+        "Summarize ONLY what is explicitly written in the notes. "
+        "Do NOT infer, assume, or add anything not mentioned. "
+        "If notes are vague or missing, say exactly what was noted, nothing more. "
+        f"Return {max_bullets} bullet points max, each under 12 words. "
+        "Start each bullet with a dash. No preamble, no numbering, no assumptions."
     )
-    user = f"LSM notes from learners who rated the class low:\n{joined}"
+    user = f"PSA notes from low-rated class sessions:\n{joined}"
     answer = _groq_call(system, user, max_tokens=200)
 
     bullets = []
