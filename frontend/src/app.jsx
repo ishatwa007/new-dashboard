@@ -556,6 +556,30 @@ function App() {
   const [tweaks,setTweaks]         = useState(TWEAK_DEFAULTS);
   const [tweaksOpen,setTweaksOpen] = useState(false);
   const [cohort, setCohort]        = useState(_initCohort);
+  const [allCohorts, setAllCohorts] = useState([]);
+
+  // Load cohorts once at App level so dropdown works on all pages
+  useEffect(() => {
+    if (!window.MOCK) window.MOCK = {};
+    if (!window.MOCK.cohorts) window.MOCK.cohorts = [];
+    window.API.getCohorts().then(data => {
+      if (data?.cohorts?.length) {
+        const mapped = data.cohorts.map(c => ({
+          id:    c.id,
+          label: c.label || c.id,
+          size:  c.total || 0,
+        }));
+        setAllCohorts(mapped);
+        window.MOCK.cohorts = [...mapped].reverse();
+        // Set default cohort to april2026 if not already set to a real one
+        const currentIsReal = mapped.find(c => c.id === cohort?.id);
+        if (!currentIsReal) {
+          const apr = mapped.find(c => c.id === 'april2026') || mapped[mapped.length - 1];
+          if (apr) setCohort(apr);
+        }
+      }
+    }).catch(() => {});
+  }, []);
 
   // Safe page setter — ignore if role can't access
   const goToPage = (p) => { if (canAccess(p)) setPage(p); };
