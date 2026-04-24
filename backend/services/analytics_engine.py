@@ -90,17 +90,27 @@ def compute_kpis(df: pd.DataFrame, oms_refunds: dict = None) -> dict:
     refund_rate_total    = _safe_pct(refunded, total)
     refund_rate_complete = _safe_pct(refunded_c, complete)
 
-    # ── GTN = (Complete - Refunded from Complete) / Total × 100 ──────────────
+    # ── GTN = (Complete - Refunded from Complete) / GTN Total × 100 ──────────
+    # GTN programs: Academy, DSML, DevOps, AIML only
+    # Try intake_program first, fall back to current_program
+    gtn_mask = None
     if "intake_program" in df.columns:
-        gtn_df = df[df["intake_program"].apply(_is_gtn_program)]
-    elif "current_program" in df.columns:
-        gtn_df = df[df["current_program"].apply(_is_gtn_program)]
+        gtn_mask = df["intake_program"].apply(
+            lambda p: _is_gtn_program(str(p)) if p else False
+        )
+    if gtn_mask is None or gtn_mask.sum() == 0:
+        if "current_program" in df.columns:
+            gtn_mask = df["current_program"].apply(
+                lambda p: _is_gtn_program(str(p)) if p else False
+            )
+
+    if gtn_mask is not None and gtn_mask.sum() > 0:
+        gtn_df = df[gtn_mask]
     else:
-        gtn_df = df
+        gtn_df = df  # fallback: use all if no program column
 
     gtn_total    = len(gtn_df)
     gtn_complete = int((gtn_df["sale_status"] == "COMPLETE").sum())
-    # Only count refunded from COMPLETE rows — not pending
     gtn_refunded = int(
         ((gtn_df.get("refunded", pd.Series(False, index=gtn_df.index)) == True) &
          (gtn_df["sale_status"] == "COMPLETE")).sum()
