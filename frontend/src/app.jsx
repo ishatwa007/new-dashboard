@@ -427,7 +427,7 @@ const USER_ROLES = {
 const ROLE_PAGES = {
   'admin':    ['analytics','requests','mentor','classroom','settings'],
   'classroom':['classroom'],
-  'program':  ['requests','mentor'],
+  'program':  ['mentor'],
 };
 
 function getRole() {
