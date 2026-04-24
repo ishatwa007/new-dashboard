@@ -32,6 +32,7 @@ from services.lsm_loader import (
 from services.classifier import classify_request
 from services.program_health import router as program_router, init as init_program, set_funnel_lookup
 from services.mentor_loader import init_mentor, load_noshows
+from services.mentor_backend_loader import init_mentor_backend, load_mentor_backend
 
 logging.basicConfig(
     level=logging.INFO,
@@ -79,7 +80,7 @@ async def _refresh_funnel():
         set_funnel_lookup(df)
         logger.info(f"Funnel refreshed: {len(df)} rows")
     except Exception as e:
-        logger.exception(f"Funnel refresh failed: {e}")
+        logger.error(f"Funnel refresh failed: {e}")
 
 
 def _get_gc():
@@ -99,6 +100,7 @@ async def lifespan(app: FastAPI):
         init_program(_get_gc(), SHEET_LSM_ID)
         init_mentor(_get_gc())
         init_oms(_get_gc())
+        init_mentor_backend(_get_gc())
     except Exception as e:
         logger.warning(f"Program Health init failed: {e}")
     yield
@@ -348,6 +350,16 @@ async def get_mentor_noshows(cohort_id: str):
         return {"error": str(e), "total": 0, "mentor_list": [], "mentee_list": []}
 
 
+@app.get("/api/mentor/backend/{cohort_id}")
+async def get_mentor_backend(cohort_id: str):
+    try:
+        data = load_mentor_backend(cohort_id)
+        return data
+    except Exception as e:
+        logger.error(f"mentor backend error: {e}")
+        return {"error": str(e), "low_raters": [], "no_shows": []}
+
+
 # =============================================================================
 # AI SUMMARY — proxies OpenAI/Groq so frontend doesn't need keys
 # =============================================================================
@@ -449,8 +461,25 @@ def _parse_bullets(text: str) -> list:
 
 
 # =============================================================================
-# SETTINGS / COHORT MANAGEMENT
+# CACHE MANAGEMENT
 # =============================================================================
+
+@app.get("/api/cache/clear")
+async def clear_cache(key: str = ""):
+    if key != "scaler2026":
+        raise HTTPException(403, "Invalid key")
+    from services.cache import invalidate_all
+    from services.program_health import _AI_CACHE_DIR
+    import shutil
+    invalidate_all()
+    # Also clear AI classifier caches
+    for cache_dir in [_AI_CACHE_DIR, "classifier_cache"]:
+        try:
+            shutil.rmtree(cache_dir, ignore_errors=True)
+        except Exception:
+            pass
+    logger.info("Cache cleared via API")
+    return {"status": "cleared", "message": "All caches cleared successfully"}
 
 @app.get("/api/cohorts")
 async def get_api_cohorts():
