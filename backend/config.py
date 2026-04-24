@@ -3,7 +3,6 @@ config.py - Environment configuration
 """
 import os
 import json
-from json import JSONDecodeError
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -12,7 +11,8 @@ load_dotenv()
 SHEET_FUNNEL_ID   = os.getenv("SHEET_FUNNEL_ID",   "1FSyE9GXB7yrWZ6DVElzNykcnlGr7bYEY3c5k_fs1NV4")
 SHEET_PERSONA_ID  = os.getenv("SHEET_PERSONA_ID",  "1pgf3eruMcWCDWIZBeDzt1MPm75w0dVyhx4OAvJTj-ls")
 SHEET_LSM_ID      = os.getenv("SHEET_LSM_ID",      "1-83qFsRBEXGQGyHPdmmhbd9Gx1aACSRlM7OxHtRnE9w")
-SHEET_MENTOR_ID   = os.getenv("SHEET_MENTOR_ID",   "1uT_vHMTM4s4TNIPhedB30MaggWRpbgX1LkqCQlbtqwI")
+SHEET_MENTOR_ID         = os.getenv("SHEET_MENTOR_ID",         "1uT_vHMTM4s4TNIPhedB30MaggWRpbgX1LkqCQlbtqwI")
+SHEET_MENTOR_BACKEND_ID = os.getenv("SHEET_MENTOR_BACKEND_ID", "1mdk1OMpsxoAU-HkTpIT-4XBk2nLmSAOdopd_88Y2Ht8")
 SHEET_OMS_ID      = os.getenv("SHEET_OMS_ID",      "140kH_-IoWYKy0143m1vjnmL6ti45zxjo9OZvvm3XPRc")
 
 # Post Sales Tracker — one sheet per cohort.
@@ -65,26 +65,10 @@ def get_google_creds():
     if key_file and os.path.exists(key_file):
         with open(key_file, "r") as f:
             return json.load(f)
-
-    raw = os.getenv("GOOGLE_CREDENTIALS", "").strip()
+    raw = os.getenv("GOOGLE_CREDENTIALS", "")
     if not raw:
         raise ValueError("Neither GOOGLE_KEY_FILE nor GOOGLE_CREDENTIALS is set")
-
-    # Be forgiving if the env var contains a path instead of inline JSON.
-    if os.path.exists(raw):
-        with open(raw, "r") as f:
-            return json.load(f)
-
-    try:
-        creds = json.loads(raw)
-    except JSONDecodeError as e:
-        preview = raw[:80].replace("\n", "\\n")
-        raise ValueError(
-            "GOOGLE_CREDENTIALS is not valid JSON. "
-            "Set it to the full service account JSON object on Railway, or use "
-            f"GOOGLE_KEY_FILE. Preview: {preview!r}"
-        ) from e
-
+    creds = json.loads(raw)
     if "private_key" in creds:
         creds["private_key"] = creds["private_key"].replace("\\n", "\n")
     return creds
