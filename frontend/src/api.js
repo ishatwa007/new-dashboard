@@ -59,7 +59,7 @@ window.API = (function () {
     get(`/analytics/${cohortId}`);
 
   const getCohorts = () =>
-    get('/cohorts');
+    get('/api/cohorts');
 
   const getPSAs = (cohortId) =>
     get(`/api/psas/${cohortId}`);
@@ -93,6 +93,9 @@ window.API = (function () {
   const getMentorNoshows = (cohort = {id: 'april2026'}) =>
     get(`/api/mentor/noshows/${encodeURIComponent(cohort.id || cohort || 'april2026')}`);
 
+  const getMentorBackend = (cohort = {id: 'april2026'}) =>
+    get(`/api/mentor/backend/${encodeURIComponent(cohort.id || cohort || 'april2026')}`);
+
   const resolveIncident = (id, email, notes) =>
     post('/api/program/resolve', {
       incident_id: id,
@@ -117,7 +120,7 @@ window.API = (function () {
     // page 2
     getRequests, approveRequest, rejectRequest, classifyRequest,
     // page 3
-    getProgramHealth, resolveIncident, escalateIncident, getMentorNoshows,
+    getProgramHealth, resolveIncident, escalateIncident, getMentorNoshows, getMentorBackend,
     // misc
     health,
   };
