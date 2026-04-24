@@ -176,10 +176,6 @@ def summarize_lsm_notes(notes_list: List[str], max_bullets: int = 4) -> List[str
     if not clean:
         return []
 
-    # If just 1 note, return it as a single cleaned bullet
-    if len(clean) == 1:
-        return [clean[0][:140]]
-
     joined = "\n".join(f"- {n[:200]}" for n in clean[:12])
     key = hashlib.md5(joined.encode()).hexdigest()
     cached = _cache_get(f"summary_{key}")
@@ -187,14 +183,15 @@ def summarize_lsm_notes(notes_list: List[str], max_bullets: int = 4) -> List[str
         return cached.get("bullets", [])
 
     system = (
-        "You are reading PSA notes about learners who rated a class low. "
-        "Summarize ONLY what is explicitly written in the notes. "
-        "Do NOT infer, assume, or add anything not mentioned. "
-        "If notes are vague or missing, say exactly what was noted, nothing more. "
-        f"Return {max_bullets} bullet points max, each under 12 words. "
-        "Start each bullet with a dash. No preamble, no numbering, no assumptions."
+        "You are an ops analyst at an edtech company reviewing PSA call notes after a class. "
+        "Rewrite the notes into clean, readable bullet points for a manager. "
+        "Use plain professional English. Remove ops jargon, abbreviations, and shorthand. "
+        "Expand short notes into clear full sentences where possible. "
+        "Stick strictly to what is written — do not add assumptions or new information. "
+        f"Return {max_bullets} bullets max, each under 15 words. "
+        "Start each bullet with a dash. No preamble, no numbering."
     )
-    user = f"PSA notes from low-rated class sessions:\n{joined}"
+    user = f"PSA call notes from low-rated class sessions:\n{joined}"
     answer = _groq_call(system, user, max_tokens=200)
 
     bullets = []
