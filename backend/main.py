@@ -510,11 +510,21 @@ async def get_refund_reasons(cohort_id: str):
         sh = gc.open_by_key(SHEET_PERSONA_ID)
 
         tab_map = {
-            'april2026': 'Apr26', 'march2026': 'Mar26', 'february2026': 'Feb26',
-            'january2026': 'Jan26', 'december(1)2025': 'Dec25(1)',
-            'december(2)2025': 'Dec25(2)', 'november2025': 'Nov25',
-            'october2025': 'Oct25', 'september2025': 'Sep25',
-            'august2025': 'Aug25', 'july2025': 'July25',
+            'april2026':       "Apr'26",
+            'march2026':       "Mar'26",
+            'february2026':    "Feb'26",
+            'january2026':     "Jan'26",
+            'december(1)2025': 'Dec25(1)',
+            'december(2)2025': 'Dec25(2)',
+            'november2025':    'Nov25',
+            'october2025':     'Oct25',
+            'september2025':   'Sep25',
+            'august2025':      'Aug25',
+            'july2025':        'July25',
+            'june2025':        'June25',
+            'may2025':         'May25',
+            'april2025':       'Apr25',
+            'march2025':       'Mar25',
         }
         tab_name = tab_map.get(cohort_id)
         if not tab_name:
