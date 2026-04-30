@@ -224,65 +224,131 @@ function AnalyticsPage({ cohort, setCohort }) {
     const kpis = d.kpis || {};
     const cohortLabel = activeCohort?.label || activeCohort?.id || 'cohort';
     const rows = [];
+    const pct = v => v != null ? `${v}%` : '0%';
 
-    // Section 1 — KPIs
+    // ── Section 1: KPIs ──────────────────────────────────────────────────────
     rows.push(['COHORT SUMMARY', '']);
-    rows.push(['Cohort', cohortLabel]);
-    rows.push(['Total Sales', kpis.total || 0]);
-    rows.push(['Complete Sales', kpis.complete || 0]);
-    rows.push(['Pending Sales', kpis.pending || 0]);
-    rows.push(['% Complete', `${kpis.pct_complete || 0}%`]);
-    rows.push(['GTN', `${kpis.gtn || 0}%`]);
-    rows.push(['Refunded (Total)', kpis.refunded || 0]);
-    rows.push(['Refunded (Complete)', kpis.refunded_c || 0]);
-    rows.push(['Refund Rate (Complete)', `${kpis.refund_rate_complete || 0}%`]);
-    rows.push(['Refund Rate (Total)', `${kpis.refund_rate_total || 0}%`]);
-    rows.push(['Pre-MnG Refunds', kpis.pre_mng || 0]);
-    rows.push(['Post-MnG Refunds', kpis.post_mng || 0]);
-    rows.push(['First Call Refunds', kpis.fec_refunds || 0]);
-    rows.push(['Probable Identified', kpis.probable_total || 0]);
+    rows.push(['Cohort',                   cohortLabel]);
+    rows.push(['Total Sales',              kpis.total || 0]);
+    rows.push(['Complete Sales',           kpis.complete || 0]);
+    rows.push(['Pending Sales',            kpis.pending || 0]);
+    rows.push(['% Complete',               pct(kpis.pct_complete)]);
+    rows.push(['GTN',                      pct(kpis.gtn)]);
+    rows.push(['Refunded (Complete)',       kpis.refunded_c || kpis.refunded || 0]);
+    rows.push(['Refund Rate (Complete)',    pct(kpis.refund_rate_complete)]);
+    rows.push(['Refund Rate (Total)',       pct(kpis.refund_rate_total)]);
+    rows.push(['Refund Requested',         kpis.ref_total || kpis.ref_req || 0]);
+    rows.push(['Pre-MnG Refunds',          kpis.pre_mng || 0]);
+    rows.push(['Post-MnG Refunds',         kpis.post_mng || 0]);
+    rows.push(['First Call Refunds',       kpis.fec_refunds || 0]);
+    rows.push(['Probable Identified',      kpis.probable_total || 0]);
     rows.push(['']);
 
-    // Section 2 — Programs
+    // ── Section 2: Programs ──────────────────────────────────────────────────
     rows.push(['PROGRAM BREAKDOWN', '', '', '', '', '']);
-    rows.push(['Program', 'Total', 'Complete', 'Pending', 'Refunded', 'Refund Rate']);
+    rows.push(['Program', 'Total', 'Complete', 'Pending', 'Refunded', 'Refund Rate %']);
     (d.programs || []).forEach(p => {
-      rows.push([p.label || p.key, p.total || 0, p.complete || 0, p.pending || 0,
-        p.refunded || 0, `${p.refund_rate || 0}%`]);
+      const pk = p.kpis || p;
+      rows.push([
+        p.label || p.key,
+        pk.total    || p.total    || 0,
+        pk.complete || p.complete || 0,
+        pk.pending  || p.pending  || 0,
+        pk.refunded_c || pk.refunded || p.refunded || 0,
+        pk.refund_rate_complete || pk.refund_rate || p.refund_rate || 0,
+      ]);
     });
     rows.push(['']);
 
-    // Section 3 — Hierarchy (AVP → BDM → BDA)
+    // ── Section 3: Hierarchy ─────────────────────────────────────────────────
     const hier = d.hierarchy || {};
-    rows.push(['HIERARCHY BREAKDOWN', '', '', '', '', '']);
-    rows.push(['Level', 'Name', 'Total', 'Complete', 'Pending', 'Refunded', 'Refund Rate', 'GTN']);
+    const avps = hier.avps || [];
+    const bdmsByAvp = hier.bdms_by_avp || {};
+    const bdasByBdm = hier.bdas_by_bdm || {};
 
-    // AVPs
-    (hier.avps || []).forEach(avp => {
-      rows.push(['AVP', avp.name, avp.total || 0, avp.complete || 0, avp.pending || 0,
-        avp.refunded || 0, `${avp.refund_rate || 0}%`, `${avp.gtn || 0}%`]);
-      // BDMs under this AVP
-      (avp.bdms || []).forEach(bdm => {
-        rows.push(['  BDM', bdm.name, bdm.total || 0, bdm.complete || 0, bdm.pending || 0,
-          bdm.refunded || 0, `${bdm.refund_rate || 0}%`, `${bdm.gtn || 0}%`]);
-        // BDAs under this BDM
-        (bdm.bdas || []).forEach(bda => {
-          rows.push(['    BDA', bda.name, bda.total || 0, bda.complete || 0, bda.pending || 0,
-            bda.refunded || 0, `${bda.refund_rate || 0}%`, `${bda.gtn || 0}%`]);
+    rows.push(['HIERARCHY BREAKDOWN', '', '', '', '', '', '', '']);
+    rows.push(['Level', 'Name', 'Email', 'Total', 'Complete', 'Pending', 'Refunded', 'Refund Rate %', 'GTN %']);
+
+    avps.forEach(avp => {
+      rows.push([
+        'AVP', avp.display_name || avp.name || avp.email,
+        avp.email || '',
+        avp.total || 0, avp.complete || 0, avp.pending || 0,
+        avp.refunded_c || avp.refunded || 0,
+        avp.refund_rate_complete || avp.pct_c || 0,
+        avp.gtn || 0,
+      ]);
+      (bdmsByAvp[avp.email] || []).forEach(bdm => {
+        rows.push([
+          '  BDM', bdm.display_name || bdm.name || bdm.email,
+          bdm.email || '',
+          bdm.total || 0, bdm.complete || 0, bdm.pending || 0,
+          bdm.refunded_c || bdm.refunded || 0,
+          bdm.refund_rate_complete || bdm.pct_c || 0,
+          '',
+        ]);
+        (bdasByBdm[bdm.email] || []).forEach(bda => {
+          rows.push([
+            '    BDA', bda.display_name || bda.name || bda.email,
+            bda.email || '',
+            bda.total || 0, bda.complete || 0, bda.pending || 0,
+            bda.refunded_c || bda.refunded || 0,
+            bda.refund_rate_complete || bda.pct_c || 0,
+            '',
+          ]);
         });
       });
     });
     rows.push(['']);
 
-    // Section 4 — PSAs
+    // ── Section 4: PSAs ──────────────────────────────────────────────────────
     rows.push(['PSA BREAKDOWN', '', '', '', '', '']);
-    rows.push(['PSA', 'Total', 'Complete', 'Pending', 'Refunded', 'Refund Rate']);
+    rows.push(['PSA', 'Email', 'Total', 'Complete', 'Pending', 'Refunded', 'Refund Rate %']);
     (d.psas || livePSAs || []).forEach(p => {
-      rows.push([p.name || p.email, p.total || 0, p.complete || 0, p.pending || 0,
-        p.refunded || 0, `${p.refund_rate || 0}%`]);
+      const pk = p.kpis || p;
+      rows.push([
+        p.name || p.email,
+        p.email || '',
+        pk.total    || p.total    || p.assigned || 0,
+        pk.complete || p.complete || 0,
+        pk.pending  || p.pending  || 0,
+        pk.refunded_c || pk.refunded || p.refunded || 0,
+        pk.refund_rate_complete || p.refund_rate || 0,
+      ]);
     });
+    rows.push(['']);
 
-    // Convert to CSV string
+    // ── Section 5: Persona Breakdown ─────────────────────────────────────────
+    if (d.persona_breakdown?.length) {
+      rows.push(['PERSONA BREAKDOWN', '', '', '', '']);
+      rows.push(['Persona', 'Total', 'Refunded', 'Refund Rate %']);
+      d.persona_breakdown.forEach(p => {
+        rows.push([p.label || p.persona, p.total || 0, p.refunded || 0, p.refund_rate || 0]);
+      });
+      rows.push(['']);
+    }
+
+    // ── Section 6: CTC Breakdown ─────────────────────────────────────────────
+    if (d.ctc_breakdown?.length) {
+      rows.push(['CTC BREAKDOWN', '', '', '', '']);
+      rows.push(['CTC Band', 'Total', 'Refunded', 'Refund Rate %']);
+      d.ctc_breakdown.forEach(p => {
+        rows.push([p.label || p.ctc, p.total || 0, p.refunded || 0, p.refund_rate || 0]);
+      });
+      rows.push(['']);
+    }
+
+    // ── Section 7: Program Refunds (batch level) ─────────────────────────────
+    if (d.program_refunds?.length) {
+      rows.push(['BATCH BREAKDOWN', '', '', '', '', '']);
+      rows.push(['Batch', 'Total', 'Complete', 'Pending', 'Refunded', 'Refund Rate %']);
+      d.program_refunds.forEach(p => {
+        rows.push([p.label || p.key, p.total || 0, p.active || 0, 0, p.refunded || 0, p.refund_rate || 0]);
+      });
+      rows.push(['']);
+    }
+
+    // ── Convert to CSV ────────────────────────────────────────────────────────
     const csv = rows.map(row =>
       row.map(cell => {
         const s = String(cell ?? '');
@@ -291,7 +357,6 @@ function AnalyticsPage({ cohort, setCohort }) {
       }).join(',')
     ).join('\n');
 
-    // Download
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
