@@ -329,19 +329,29 @@ function AnalyticsPage({ cohort, setCohort }) {
     // ── Section 8: Refund Reasons ─────────────────────────────────────────────
     if (reasonsData?.rows?.length) {
       rows.push(['']);
-      rows.push(['REFUND REASONS — CATEGORY SUMMARY', '', '']);
-      rows.push(['Category', 'Count']);
+      rows.push(['REFUND REASONS ANALYSIS', '', '']);
+      rows.push(['Category', 'Count', '% of Total']);
+      const total = reasonsData.total || reasonsData.rows.length;
       (reasonsData.categories || []).forEach(c => {
-        rows.push([c.category, c.count]);
+        rows.push([c.category, c.count, Math.round(c.count / total * 100) + '%']);
       });
       rows.push(['']);
-      rows.push(['REFUND REASONS — DETAILED CASES', '', '', '', '', '', '', '', '']);
-      rows.push(['Email', 'Batch', 'PSA', 'Category', 'Stated Reason', 'Identified Reason', 'Actions Taken', 'Outcome', 'What Didn\'t Work']);
+
+      // Group rows by category
+      const grouped = {};
       reasonsData.rows.forEach(r => {
-        rows.push([
-          r.email, r.batch, r.psa, r.category,
-          r.stated, r.identified, r.actions, r.outcome, r.didnt_work,
-        ]);
+        const cat = r.category || 'Other';
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(r);
+      });
+
+      Object.entries(grouped).forEach(([category, cases]) => {
+        rows.push([`--- ${category} (${cases.length} cases) ---`, '', '', '', '', '', '']);
+        rows.push(['Email', 'Batch', 'PSA', 'Stated Reason', 'Identified Reason', 'Actions Taken', 'Outcome']);
+        cases.forEach(r => {
+          rows.push([r.email, r.batch, r.psa, r.stated, r.identified, r.actions, r.outcome]);
+        });
+        rows.push(['']);
       });
     }
 
