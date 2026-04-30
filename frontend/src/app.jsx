@@ -219,6 +219,88 @@ function AnalyticsPage({ cohort, setCohort }) {
     setRefreshing(false);
   };
 
+  const exportCSV = () => {
+    const d = liveData || {};
+    const kpis = d.kpis || {};
+    const cohortLabel = activeCohort?.label || activeCohort?.id || 'cohort';
+    const rows = [];
+
+    // Section 1 — KPIs
+    rows.push(['COHORT SUMMARY', '']);
+    rows.push(['Cohort', cohortLabel]);
+    rows.push(['Total Sales', kpis.total || 0]);
+    rows.push(['Complete Sales', kpis.complete || 0]);
+    rows.push(['Pending Sales', kpis.pending || 0]);
+    rows.push(['% Complete', `${kpis.pct_complete || 0}%`]);
+    rows.push(['GTN', `${kpis.gtn || 0}%`]);
+    rows.push(['Refunded (Total)', kpis.refunded || 0]);
+    rows.push(['Refunded (Complete)', kpis.refunded_c || 0]);
+    rows.push(['Refund Rate (Complete)', `${kpis.refund_rate_complete || 0}%`]);
+    rows.push(['Refund Rate (Total)', `${kpis.refund_rate_total || 0}%`]);
+    rows.push(['Pre-MnG Refunds', kpis.pre_mng || 0]);
+    rows.push(['Post-MnG Refunds', kpis.post_mng || 0]);
+    rows.push(['First Call Refunds', kpis.fec_refunds || 0]);
+    rows.push(['Probable Identified', kpis.probable_total || 0]);
+    rows.push(['']);
+
+    // Section 2 — Programs
+    rows.push(['PROGRAM BREAKDOWN', '', '', '', '', '']);
+    rows.push(['Program', 'Total', 'Complete', 'Pending', 'Refunded', 'Refund Rate']);
+    (d.programs || []).forEach(p => {
+      rows.push([p.label || p.key, p.total || 0, p.complete || 0, p.pending || 0,
+        p.refunded || 0, `${p.refund_rate || 0}%`]);
+    });
+    rows.push(['']);
+
+    // Section 3 — Hierarchy (AVP → BDM → BDA)
+    const hier = d.hierarchy || {};
+    rows.push(['HIERARCHY BREAKDOWN', '', '', '', '', '']);
+    rows.push(['Level', 'Name', 'Total', 'Complete', 'Pending', 'Refunded', 'Refund Rate', 'GTN']);
+
+    // AVPs
+    (hier.avps || []).forEach(avp => {
+      rows.push(['AVP', avp.name, avp.total || 0, avp.complete || 0, avp.pending || 0,
+        avp.refunded || 0, `${avp.refund_rate || 0}%`, `${avp.gtn || 0}%`]);
+      // BDMs under this AVP
+      (avp.bdms || []).forEach(bdm => {
+        rows.push(['  BDM', bdm.name, bdm.total || 0, bdm.complete || 0, bdm.pending || 0,
+          bdm.refunded || 0, `${bdm.refund_rate || 0}%`, `${bdm.gtn || 0}%`]);
+        // BDAs under this BDM
+        (bdm.bdas || []).forEach(bda => {
+          rows.push(['    BDA', bda.name, bda.total || 0, bda.complete || 0, bda.pending || 0,
+            bda.refunded || 0, `${bda.refund_rate || 0}%`, `${bda.gtn || 0}%`]);
+        });
+      });
+    });
+    rows.push(['']);
+
+    // Section 4 — PSAs
+    rows.push(['PSA BREAKDOWN', '', '', '', '', '']);
+    rows.push(['PSA', 'Total', 'Complete', 'Pending', 'Refunded', 'Refund Rate']);
+    (d.psas || livePSAs || []).forEach(p => {
+      rows.push([p.name || p.email, p.total || 0, p.complete || 0, p.pending || 0,
+        p.refunded || 0, `${p.refund_rate || 0}%`]);
+    });
+
+    // Convert to CSV string
+    const csv = rows.map(row =>
+      row.map(cell => {
+        const s = String(cell ?? '');
+        return s.includes(',') || s.includes('"') || s.includes('\n')
+          ? `"${s.replace(/"/g, '""')}"` : s;
+      }).join(',')
+    ).join('\n');
+
+    // Download
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `scaler-analytics-${cohortLabel.replace(/\s+/g,'-').toLowerCase()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const d = liveData || {};
   const psas = livePSAs || d.psas || [];
   const hierarchy = d.hierarchy || {};
@@ -233,6 +315,7 @@ function AnalyticsPage({ cohort, setCohort }) {
         cohort={activeCohort} setCohort={setActiveCohort}
         compare={compare} setCompare={setCompare}
         onRefresh={handleRefresh} refreshing={refreshing}
+        onExport={liveData ? exportCSV : null}
       />
       {loading && !liveData ? (
         <div style={{padding:'60px',textAlign:'center',color:'var(--fg-2)',fontSize:13}}>

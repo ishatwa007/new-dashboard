@@ -340,6 +340,28 @@ async def classify_req(body: ClassifyRequest):
 # PAGE 4: MENTOR NO SHOWS
 # =============================================================================
 
+@app.get("/api/classroom/{cohort_id}")
+async def get_classroom(cohort_id: str):
+    try:
+        from config import get_postsales_id
+        from services.post_sales_loader import load_postsales_classroom
+        postsales_id = get_postsales_id(cohort_id)
+        if not postsales_id:
+            return {"class_ratings": [], "low_raters": [], "class_missed": [], "cohort_id": cohort_id}
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(None, load_postsales_classroom, _get_gc(), postsales_id)
+        class_ratings, low_raters, instructor_map, class_missed = result
+        return {
+            "cohort_id":    cohort_id,
+            "class_ratings": class_ratings,
+            "low_raters":    low_raters,
+            "class_missed":  class_missed,
+        }
+    except Exception as e:
+        logger.error(f"classroom error: {e}")
+        return {"class_ratings": [], "low_raters": [], "class_missed": [], "cohort_id": cohort_id}
+
+
 @app.get("/api/mentor/noshows/{cohort_id}")
 async def get_mentor_noshows(cohort_id: str):
     try:

@@ -90,6 +90,9 @@ window.API = (function () {
   const getProgramHealth = (cohort = {id: 'april2026'}) =>
     get(`/api/program/health?cohort=${encodeURIComponent(cohort.id || cohort || 'april2026')}`);
 
+  const getClassroom = (cohort = {id: 'april2026'}) =>
+    get(`/api/classroom/${encodeURIComponent(cohort.id || cohort || 'april2026')}`);
+
   const getMentorNoshows = (cohort = {id: 'april2026'}) =>
     get(`/api/mentor/noshows/${encodeURIComponent(cohort.id || cohort || 'april2026')}`);
 
@@ -120,7 +123,7 @@ window.API = (function () {
     // page 2
     getRequests, approveRequest, rejectRequest, classifyRequest,
     // page 3
-    getProgramHealth, resolveIncident, escalateIncident, getMentorNoshows, getMentorBackend,
+    getProgramHealth, resolveIncident, escalateIncident, getMentorNoshows, getMentorBackend, getClassroom,
     // misc
     health,
   };

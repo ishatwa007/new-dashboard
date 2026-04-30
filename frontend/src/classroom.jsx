@@ -88,8 +88,8 @@ function ClassroomPage({ cohort }) {
     setLoading(true);
     try {
       const API = window.API;
-      if (API && API.getProgramHealth) {
-        const result = await API.getProgramHealth(cohort);
+      if (API && API.getClassroom) {
+        const result = await API.getClassroom(cohort);
         if (result) { setData(result); setLoading(false); return; }
       }
     } catch (e) {

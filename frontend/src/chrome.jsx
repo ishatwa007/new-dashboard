@@ -56,7 +56,7 @@ window.Sidebar = ({ page, onPage, pendingCount, canAccess, role }) => {
   );
 };
 
-window.Header = ({ title, subtitle, cohort, setCohort, compare, setCompare, onRefresh, refreshing, onSettings, showCohortCenter = true }) => {
+window.Header = ({ title, subtitle, cohort, setCohort, compare, setCompare, onRefresh, refreshing, onSettings, onExport, showCohortCenter = true }) => {
   const [open, setOpen] = useStateC(false);
   const [searchOpen, setSearchOpen] = useStateC(false);
   const [searchVal, setSearchVal] = useStateC('');
@@ -140,6 +140,14 @@ window.Header = ({ title, subtitle, cohort, setCohort, compare, setCompare, onRe
         <button className="icon-btn" onClick={onRefresh} disabled={refreshing} title="Refresh">
           <Icon name={refreshing?'loading':'refresh'} size={13} className={refreshing?'spin':''} />
         </button>
+        {onExport && (
+          <button className="icon-btn" onClick={onExport} title="Export CSV"
+            style={{fontSize:11,fontWeight:600,color:'var(--green)',padding:'4px 10px',
+              borderRadius:6,border:'1px solid var(--green)',background:'var(--green-soft)',
+              display:'flex',alignItems:'center',gap:4}}>
+            ↓ CSV
+          </button>
+        )}
         <button className="icon-btn" onClick={() => window._goToSettings?.()} title="Settings">
           <Icon name="settings" size={13} />
         </button>
