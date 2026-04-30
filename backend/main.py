@@ -490,72 +490,133 @@ def _parse_bullets(text: str) -> list:
 async def get_refund_reasons(cohort_id: str):
     try:
         from services.sheets_loader import _get_client
-        from config import SHEET_LSM_ID
+        from config import SHEET_PERSONA_ID
         from collections import Counter
 
         gc = _get_client()
-        sh = gc.open_by_key(SHEET_LSM_ID)
+        sh = gc.open_by_key(SHEET_PERSONA_ID)
 
-        try:
-            ws = sh.worksheet("Refund Reasons")
-        except Exception:
-            return {"rows": [], "categories": [], "total": 0, "error": "Refund Reasons tab not found"}
-
-        data = ws.get_all_values()
-        if len(data) < 4:
+        tab_map = {
+            'april2026': 'Apr26', 'march2026': 'Mar26', 'february2026': 'Feb26',
+            'january2026': 'Jan26', 'december(1)2025': 'Dec25(1)',
+            'december(2)2025': 'Dec25(2)', 'november2025': 'Nov25',
+            'october2025': 'Oct25', 'september2025': 'Sep25',
+            'august2025': 'Aug25', 'july2025': 'July25',
+        }
+        tab_name = tab_map.get(cohort_id)
+        if not tab_name:
             return {"rows": [], "categories": [], "total": 0}
 
-        # Row 3 (index 2) is the header row
-        headers = data[2]
-        col = {h.strip(): i for i, h in enumerate(headers) if h.strip()}
+        try:
+            ws = sh.worksheet(tab_name)
+        except Exception:
+            return {"rows": [], "categories": [], "total": 0, "error": f"Tab {tab_name} not found"}
+
+        data = ws.get_all_values()
+        if len(data) < 2:
+            return {"rows": [], "categories": [], "total": 0}
+
+        headers = [h.strip() for h in data[0]]
+
+        def col(name):
+            try: return headers.index(name)
+            except: return None
+
+        C = {}
+        C['email']      = col('Email')
+        C['batch']      = col('Batch')
+        C['psa']        = col('PSA')
+        C['date']       = col('Refund Requested On')
+        C['background'] = col('Profession/Background')
+        C['exp']        = col('Years of Exp')
+        C['ctc']        = col('Financial Situation - CTC')
+        C['reason_join']= col('Reason for Joining Scaler')
+        C['actions']    = col('Actions Taken')
+        C['didnt_work'] = col("What Didn't Work")
+        C['retention']  = col('Scope of Retention')
+        C['stated']     = None
+        C['identified'] = None
+        C['outcome']    = None
+
+        for i, h in enumerate(headers):
+            hl = h.lower()
+            if 'stated refund reason' in hl or ('stated' in hl and 'reason' in hl):
+                C['stated'] = i
+            if 'identified refund reason' in hl or ('identified' in hl and 'reason' in hl):
+                C['identified'] = i
+            if 'outcome' in hl:
+                C['outcome'] = i
+
+        def g(row, key):
+            idx = C.get(key)
+            if idx is None or idx >= len(row): return ''
+            v = str(row[idx]).strip()
+            return '' if v in ('None', 'nan', '#N/A', '#REF!', '#VALUE!', '') else v
 
         rows = []
         cat_counter = Counter()
-        for row in data[3:]:
-            if not row or not row[0].strip():
-                continue
-            def g(key):
-                i = col.get(key)
-                return row[i].strip() if i is not None and i < len(row) else ''
 
-            category = g('Pain Point Category')
-            stated   = g("Stated Reason (Learner's Words)")
-            email    = g('Learner Email')
-            if not email:
-                continue
+        for row in data[1:]:
+            if not row or not row[0]: continue
+            email = g(row, 'email')
+            if not email or '@' not in email: continue
 
-            if category:
+            stated     = g(row, 'stated')
+            identified = g(row, 'identified')
+            category   = _categorise_reason(identified or stated)
+            if category and category != 'Unknown':
                 cat_counter[category] += 1
 
             rows.append({
                 "email":       email,
-                "batch":       g('Batch'),
-                "bda":         g('BDA'),
-                "bdm":         g('BDM'),
-                "psa":         g('PSA'),
-                "sale_status": g('Sale Status'),
-                "refund_date": g('Refund Requested Date'),
+                "batch":       g(row, 'batch'),
+                "psa":         g(row, 'psa'),
+                "date":        g(row, 'date'),
+                "background":  g(row, 'background'),
+                "exp":         g(row, 'exp'),
+                "ctc":         g(row, 'ctc'),
                 "stated":      stated,
-                "identified":  g('Identified Reason (LSM Assessment)'),
+                "identified":  identified,
                 "category":    category,
-                "actions":     g('Actions Taken by LSM'),
-                "didnt_work":  g("What Didn't Work"),
-                "bd_informed": g('BD Team Informed'),
-                "bd_call":     g('BD Call Done'),
-                "outcome":     g('Outcome'),
-                "notes":       g('Notes'),
+                "actions":     g(row, 'actions'),
+                "outcome":     g(row, 'outcome'),
+                "didnt_work":  g(row, 'didnt_work'),
+                "retention":   g(row, 'retention'),
             })
 
         categories = [{"category": k, "count": v} for k, v in cat_counter.most_common()]
+        return {"total": len(rows), "rows": rows, "categories": categories}
 
-        return {
-            "total":      len(rows),
-            "rows":       rows,
-            "categories": categories,
-        }
     except Exception as e:
         logger.error(f"reasons error: {e}")
         return {"rows": [], "categories": [], "total": 0, "error": str(e)}
+
+
+def _categorise_reason(text: str) -> str:
+    if not text: return 'Unknown'
+    t = text.lower()
+    if any(x in t for x in ['loan', 'emi', 'financial', 'money', 'afford', 'fee', 'cost', 'fund']):
+        return 'Financial / EMI'
+    if any(x in t for x in ['first call', 'fec', 'immediate', 'same day', 'within 24']):
+        return 'First Call Refund'
+    if any(x in t for x in ['placement', 'job guarantee', 'job assurance', 'salary hike', 'was promised']):
+        return 'Placement Expectation'
+    if any(x in t for x in ['time', 'schedule', 'busy', 'work hours', 'timing', 'workload', 'commitment']):
+        return 'Time / Schedule Conflict'
+    if any(x in t for x in ['curriculum', 'content', 'syllabus', 'course', 'material', 'topics']):
+        return 'Curriculum Concern'
+    if any(x in t for x in ['low intent', 'not serious', 'not interested', 'changed mind', 'reconsidering']):
+        return 'Low Intent'
+    if any(x in t for x in ['career', 'domain', 'field', 'not relevant', 'wrong course', 'mismatch']):
+        return 'Career Misalignment'
+    if any(x in t for x in ['technical', 'tech issue', 'platform', 'access', 'login']):
+        return 'Technical Issues'
+    if any(x in t for x in ['family', 'health', 'personal', 'emergency', 'medical']):
+        return 'Personal Reasons'
+    return 'Other'
+
+
+@app.get("/api/cache/clear")
 async def clear_cache(key: str = ""):
     if key != "scaler2026":
         raise HTTPException(403, "Invalid key")
@@ -563,7 +624,6 @@ async def clear_cache(key: str = ""):
     from services.program_health import _AI_CACHE_DIR
     import shutil
     invalidate_all()
-    # Also clear AI classifier caches
     for cache_dir in [_AI_CACHE_DIR, "classifier_cache"]:
         try:
             shutil.rmtree(cache_dir, ignore_errors=True)
