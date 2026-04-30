@@ -224,39 +224,27 @@ function AnalyticsPage({ cohort, setCohort }) {
     const kpis = d.kpis || {};
     const cohortLabel = activeCohort?.label || activeCohort?.id || 'cohort';
     const rows = [];
-    const pct = v => v != null ? `${v}%` : '0%';
-
     // ── Section 1: KPIs ──────────────────────────────────────────────────────
     rows.push(['COHORT SUMMARY', '']);
     rows.push(['Cohort',                   cohortLabel]);
-    rows.push(['Total Sales',              kpis.total || 0]);
+    rows.push(['Total Sales',              kpis.sales || 0]);
     rows.push(['Complete Sales',           kpis.complete || 0]);
     rows.push(['Pending Sales',            kpis.pending || 0]);
-    rows.push(['% Complete',               pct(kpis.pct_complete)]);
-    rows.push(['GTN',                      pct(kpis.gtn)]);
-    rows.push(['Refunded (Complete)',       kpis.refunded_c || kpis.refunded || 0]);
-    rows.push(['Refund Rate (Complete)',    pct(kpis.refund_rate_complete)]);
-    rows.push(['Refund Rate (Total)',       pct(kpis.refund_rate_total)]);
-    rows.push(['Refund Requested',         kpis.ref_total || kpis.ref_req || 0]);
-    rows.push(['Pre-MnG Refunds',          kpis.pre_mng || 0]);
-    rows.push(['Post-MnG Refunds',         kpis.post_mng || 0]);
-    rows.push(['First Call Refunds',       kpis.fec_refunds || 0]);
-    rows.push(['Probable Identified',      kpis.probable_total || 0]);
+    rows.push(['% Complete',               kpis.pctComplete || 0]);
+    rows.push(['GTN %',                    kpis.gtn || 0]);
+    rows.push(['Refunded (Complete)',       kpis.refundsComplete || 0]);
+    rows.push(['Refund Rate (Complete) %', kpis.refRateComplete || 0]);
+    rows.push(['Refund Rate (Total) %',    kpis.refRateTotal || 0]);
+    rows.push(['Pre-MnG Refunds',          kpis.preMng || 0]);
+    rows.push(['First Call Refunds',       kpis.fecRefunds || 0]);
+    rows.push(['Probable Identified',      kpis.probableConverted || 0]);
     rows.push(['']);
 
     // ── Section 2: Programs ──────────────────────────────────────────────────
-    rows.push(['PROGRAM BREAKDOWN', '', '', '', '', '']);
-    rows.push(['Program', 'Total', 'Complete', 'Pending', 'Refunded', 'Refund Rate %']);
+    rows.push(['PROGRAM BREAKDOWN', '', '', '', '']);
+    rows.push(['Program', 'Total', 'Refunded', 'Refund Rate %', 'GTN %']);
     (d.programs || []).forEach(p => {
-      const pk = p.kpis || p;
-      rows.push([
-        p.label || p.key,
-        pk.total    || p.total    || 0,
-        pk.complete || p.complete || 0,
-        pk.pending  || p.pending  || 0,
-        pk.refunded_c || pk.refunded || p.refunded || 0,
-        pk.refund_rate_complete || pk.refund_rate || p.refund_rate || 0,
-      ]);
+      rows.push([p.name || p.key, p.sales || 0, p.refunds || 0, p.rate || 0, p.gtn || 0]);
     });
     rows.push(['']);
 
@@ -303,49 +291,39 @@ function AnalyticsPage({ cohort, setCohort }) {
 
     // ── Section 4: PSAs ──────────────────────────────────────────────────────
     rows.push(['PSA BREAKDOWN', '', '', '', '', '']);
-    rows.push(['PSA', 'Email', 'Total', 'Complete', 'Pending', 'Refunded', 'Refund Rate %']);
+    rows.push(['PSA', 'Email', 'Total', 'Complete', 'Refunded', 'Refund Rate %']);
     (d.psas || livePSAs || []).forEach(p => {
-      const pk = p.kpis || p;
-      rows.push([
-        p.name || p.email,
-        p.email || '',
-        pk.total    || p.total    || p.assigned || 0,
-        pk.complete || p.complete || 0,
-        pk.pending  || p.pending  || 0,
-        pk.refunded_c || pk.refunded || p.refunded || 0,
-        pk.refund_rate_complete || p.refund_rate || 0,
-      ]);
+      rows.push([p.name || p.email, p.email || '', p.assigned || 0, p.complete || 0, p.refunds || 0, p.rate || 0]);
     });
     rows.push(['']);
 
     // ── Section 5: Persona Breakdown ─────────────────────────────────────────
-    if (d.persona_breakdown?.length) {
-      rows.push(['PERSONA BREAKDOWN', '', '', '', '']);
-      rows.push(['Persona', 'Total', 'Refunded', 'Refund Rate %']);
-      d.persona_breakdown.forEach(p => {
-        rows.push([p.label || p.persona, p.total || 0, p.refunded || 0, p.refund_rate || 0]);
+    if (d.byProfession?.length) {
+      rows.push(['PERSONA BREAKDOWN', '', '', '']);
+      rows.push(['Persona', 'Active', 'Refunded', 'Refund Rate %']);
+      d.byProfession.forEach(p => {
+        rows.push([p.label, p.active || 0, p.refunded || 0, p.rate || 0]);
       });
       rows.push(['']);
     }
 
     // ── Section 6: CTC Breakdown ─────────────────────────────────────────────
-    if (d.ctc_breakdown?.length) {
-      rows.push(['CTC BREAKDOWN', '', '', '', '']);
-      rows.push(['CTC Band', 'Total', 'Refunded', 'Refund Rate %']);
-      d.ctc_breakdown.forEach(p => {
-        rows.push([p.label || p.ctc, p.total || 0, p.refunded || 0, p.refund_rate || 0]);
+    if (d.ctcBreakdown?.length) {
+      rows.push(['CTC BREAKDOWN', '', '', '']);
+      rows.push(['CTC Band', 'Active', 'Refunded', 'Refund Rate %']);
+      d.ctcBreakdown.forEach(p => {
+        rows.push([p.label, p.active || 0, p.refunded || 0, p.rate || 0]);
       });
       rows.push(['']);
     }
 
     // ── Section 7: Program Refunds (batch level) ─────────────────────────────
-    if (d.program_refunds?.length) {
-      rows.push(['BATCH BREAKDOWN', '', '', '', '', '']);
-      rows.push(['Batch', 'Total', 'Complete', 'Pending', 'Refunded', 'Refund Rate %']);
-      d.program_refunds.forEach(p => {
-        rows.push([p.label || p.key, p.total || 0, p.active || 0, 0, p.refunded || 0, p.refund_rate || 0]);
+    if (d.programRefunds?.length) {
+      rows.push(['BATCH BREAKDOWN', '', '', '', '']);
+      rows.push(['Batch', 'Total', 'Complete', 'Refunded', 'Refund Rate %']);
+      d.programRefunds.forEach(p => {
+        rows.push([p.label || p.key, p.total || 0, p.active || 0, p.refunded || 0, p.rate || 0]);
       });
-      rows.push(['']);
     }
 
     // ── Convert to CSV ────────────────────────────────────────────────────────
