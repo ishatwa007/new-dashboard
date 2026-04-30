@@ -486,6 +486,19 @@ def _parse_bullets(text: str) -> list:
 # CACHE MANAGEMENT
 # =============================================================================
 
+@app.get("/api/reasons/debug")
+async def debug_reasons():
+    try:
+        from services.sheets_loader import _get_client
+        from config import SHEET_PERSONA_ID
+        gc = _get_client()
+        sh = gc.open_by_key(SHEET_PERSONA_ID)
+        tabs = [w.title for w in sh.worksheets()]
+        return {"sheet_id": SHEET_PERSONA_ID[:20], "tabs": tabs}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @app.get("/api/reasons/{cohort_id}")
 async def get_refund_reasons(cohort_id: str):
     try:
