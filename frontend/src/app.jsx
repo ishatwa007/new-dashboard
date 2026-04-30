@@ -326,6 +326,25 @@ function AnalyticsPage({ cohort, setCohort }) {
       });
     }
 
+    // ── Section 8: Refund Reasons ─────────────────────────────────────────────
+    if (reasonsData?.rows?.length) {
+      rows.push(['']);
+      rows.push(['REFUND REASONS — CATEGORY SUMMARY', '', '']);
+      rows.push(['Category', 'Count']);
+      (reasonsData.categories || []).forEach(c => {
+        rows.push([c.category, c.count]);
+      });
+      rows.push(['']);
+      rows.push(['REFUND REASONS — DETAILED CASES', '', '', '', '', '', '', '', '']);
+      rows.push(['Email', 'Batch', 'PSA', 'Category', 'Stated Reason', 'Identified Reason', 'Actions Taken', 'Outcome', 'What Didn\'t Work']);
+      reasonsData.rows.forEach(r => {
+        rows.push([
+          r.email, r.batch, r.psa, r.category,
+          r.stated, r.identified, r.actions, r.outcome, r.didnt_work,
+        ]);
+      });
+    }
+
     // ── Convert to CSV ────────────────────────────────────────────────────────
     const csv = rows.map(row =>
       row.map(cell => {
