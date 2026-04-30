@@ -490,23 +490,22 @@ def _parse_bullets(text: str) -> list:
 async def get_refund_reasons(cohort_id: str):
     try:
         from services.sheets_loader import _get_client
-        from config import SHEET_PERSONA_ID, COHORT_SHEET_MAP
+        from config import SHEET_LSM_ID
         from collections import Counter
 
         gc = _get_client()
-        sh = gc.open_by_key(SHEET_PERSONA_ID)
+        sh = gc.open_by_key(SHEET_LSM_ID)
 
-        # Try to get the Refund Reasons tab
         try:
             ws = sh.worksheet("Refund Reasons")
         except Exception:
-            return {"rows": [], "categories": [], "total": 0}
+            return {"rows": [], "categories": [], "total": 0, "error": "Refund Reasons tab not found"}
 
         data = ws.get_all_values()
         if len(data) < 4:
             return {"rows": [], "categories": [], "total": 0}
 
-        # Row 3 (index 2) is the header
+        # Row 3 (index 2) is the header row
         headers = data[2]
         col = {h.strip(): i for i, h in enumerate(headers) if h.strip()}
 
@@ -521,29 +520,30 @@ async def get_refund_reasons(cohort_id: str):
 
             category = g('Pain Point Category')
             stated   = g("Stated Reason (Learner's Words)")
-            if not category and not stated:
+            email    = g('Learner Email')
+            if not email:
                 continue
 
             if category:
                 cat_counter[category] += 1
 
             rows.append({
-                "email":        g('Learner Email'),
-                "batch":        g('Batch'),
-                "bda":          g('BDA'),
-                "bdm":          g('BDM'),
-                "psa":          g('PSA'),
-                "sale_status":  g('Sale Status'),
-                "refund_date":  g('Refund Requested Date'),
-                "stated":       stated,
-                "identified":   g('Identified Reason (LSM Assessment)'),
-                "category":     category,
-                "actions":      g('Actions Taken by LSM'),
-                "didnt_work":   g("What Didn't Work"),
-                "bd_informed":  g('BD Team Informed'),
-                "bd_call":      g('BD Call Done'),
-                "outcome":      g('Outcome'),
-                "notes":        g('Notes'),
+                "email":       email,
+                "batch":       g('Batch'),
+                "bda":         g('BDA'),
+                "bdm":         g('BDM'),
+                "psa":         g('PSA'),
+                "sale_status": g('Sale Status'),
+                "refund_date": g('Refund Requested Date'),
+                "stated":      stated,
+                "identified":  g('Identified Reason (LSM Assessment)'),
+                "category":    category,
+                "actions":     g('Actions Taken by LSM'),
+                "didnt_work":  g("What Didn't Work"),
+                "bd_informed": g('BD Team Informed'),
+                "bd_call":     g('BD Call Done'),
+                "outcome":     g('Outcome'),
+                "notes":       g('Notes'),
             })
 
         categories = [{"category": k, "count": v} for k, v in cat_counter.most_common()]
