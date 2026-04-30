@@ -486,7 +486,76 @@ def _parse_bullets(text: str) -> list:
 # CACHE MANAGEMENT
 # =============================================================================
 
-@app.get("/api/cache/clear")
+@app.get("/api/reasons/{cohort_id}")
+async def get_refund_reasons(cohort_id: str):
+    try:
+        from services.sheets_loader import _get_client
+        from config import SHEET_PERSONA_ID, COHORT_SHEET_MAP
+        from collections import Counter
+
+        gc = _get_client()
+        sh = gc.open_by_key(SHEET_PERSONA_ID)
+
+        # Try to get the Refund Reasons tab
+        try:
+            ws = sh.worksheet("Refund Reasons")
+        except Exception:
+            return {"rows": [], "categories": [], "total": 0}
+
+        data = ws.get_all_values()
+        if len(data) < 4:
+            return {"rows": [], "categories": [], "total": 0}
+
+        # Row 3 (index 2) is the header
+        headers = data[2]
+        col = {h.strip(): i for i, h in enumerate(headers) if h.strip()}
+
+        rows = []
+        cat_counter = Counter()
+        for row in data[3:]:
+            if not row or not row[0].strip():
+                continue
+            def g(key):
+                i = col.get(key)
+                return row[i].strip() if i is not None and i < len(row) else ''
+
+            category = g('Pain Point Category')
+            stated   = g("Stated Reason (Learner's Words)")
+            if not category and not stated:
+                continue
+
+            if category:
+                cat_counter[category] += 1
+
+            rows.append({
+                "email":        g('Learner Email'),
+                "batch":        g('Batch'),
+                "bda":          g('BDA'),
+                "bdm":          g('BDM'),
+                "psa":          g('PSA'),
+                "sale_status":  g('Sale Status'),
+                "refund_date":  g('Refund Requested Date'),
+                "stated":       stated,
+                "identified":   g('Identified Reason (LSM Assessment)'),
+                "category":     category,
+                "actions":      g('Actions Taken by LSM'),
+                "didnt_work":   g("What Didn't Work"),
+                "bd_informed":  g('BD Team Informed'),
+                "bd_call":      g('BD Call Done'),
+                "outcome":      g('Outcome'),
+                "notes":        g('Notes'),
+            })
+
+        categories = [{"category": k, "count": v} for k, v in cat_counter.most_common()]
+
+        return {
+            "total":      len(rows),
+            "rows":       rows,
+            "categories": categories,
+        }
+    except Exception as e:
+        logger.error(f"reasons error: {e}")
+        return {"rows": [], "categories": [], "total": 0, "error": str(e)}
 async def clear_cache(key: str = ""):
     if key != "scaler2026":
         raise HTTPException(403, "Invalid key")

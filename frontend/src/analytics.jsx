@@ -684,7 +684,7 @@ Object.assign(window, {
 
 
 // ── Hierarchy Filter Bar ────────────────────────────────────────────────────
-window.HierarchyFilter = ({ level, setLevel }) => {
+window.HierarchyFilter = ({ level, setLevel, showReasons }) => {
   const levels = [
     { id: 'overall',  label: 'Overall' },
     { id: 'program',  label: 'Program' },
@@ -693,6 +693,7 @@ window.HierarchyFilter = ({ level, setLevel }) => {
     { id: 'bda',      label: 'BDA' },
     { id: 'psa',      label: 'PSA' },
   ];
+  if (showReasons) levels.push({ id: 'reasons', label: '📋 Reasons', badge: true });
   return (
     <div className="hierarchy-filter" style={{
       display:'flex', gap:4, padding:'10px 0', marginBottom:4, flexWrap:'wrap',

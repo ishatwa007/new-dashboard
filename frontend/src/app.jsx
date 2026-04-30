@@ -371,6 +371,41 @@ function AnalyticsPage({ cohort, setCohort }) {
   const hierarchy = d.hierarchy || {};
 
   const [viewLevel, setViewLevel] = useState('overall');
+  const [reasonsData, setReasonsData] = useState(null);
+  const [reasonsLoading, setReasonsLoading] = useState(false);
+  const [reasonsAI, setReasonsAI] = useState(null);
+  const [reasonsAILoading, setReasonsAILoading] = useState(false);
+
+  const loadReasons = useCallback(async () => {
+    setReasonsLoading(true);
+    try {
+      const res = await window.API.getRefundReasons(activeCohort);
+      setReasonsData(res);
+    } catch(e) { console.error('Reasons load error:', e); }
+    finally { setReasonsLoading(false); }
+  }, [activeCohort?.id]);
+
+  useEffect(() => {
+    if (viewLevel === 'reasons' && !reasonsData) loadReasons();
+  }, [viewLevel, reasonsData, loadReasons]);
+
+  const generateReasonsAI = async () => {
+    if (!reasonsData?.rows?.length || reasonsAILoading) return;
+    setReasonsAILoading(true);
+    const items = reasonsData.rows
+      .map(r => [r.category, r.identified || r.stated].filter(Boolean).join(': '))
+      .filter(Boolean).slice(0, 25);
+    try {
+      const res = await fetch(`${window.API_BASE}/api/ai/summary`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ items, context: 'refund reasons and pain points from learners' })
+      });
+      const json = await res.json();
+      setReasonsAI(json.bullets || []);
+    } catch(e) { setReasonsAI([]); }
+    finally { setReasonsAILoading(false); }
+  };
 
   return (
     <>
@@ -396,9 +431,119 @@ function AnalyticsPage({ cohort, setCohort }) {
         <>
           <KPIStrip cohort={activeCohort} compare={compare} liveKpis={d?.kpis} />
           {typeof HierarchyFilter !== 'undefined' && (
-            <HierarchyFilter level={viewLevel} setLevel={setViewLevel} />
+            <HierarchyFilter level={viewLevel} setLevel={setViewLevel}
+              showReasons={canAccess('settings')} />
           )}
           <div className="content">
+            {viewLevel === 'reasons' && canAccess('settings') && (
+              <div style={{padding:'4px 0'}}>
+                {reasonsLoading ? (
+                  <div style={{padding:'40px',textAlign:'center',color:'var(--fg-4)'}}>Loading refund reasons...</div>
+                ) : !reasonsData ? (
+                  <div style={{padding:'40px',textAlign:'center',color:'var(--fg-4)'}}>
+                    <button className="btn primary" onClick={loadReasons}>Load Reasons</button>
+                  </div>
+                ) : (
+                  <div>
+                    {/* AI Summary */}
+                    <div style={{background:'var(--bg-1)',border:'1px solid var(--border)',
+                      borderRadius:10,padding:'18px 22px',marginBottom:16}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+                        <div style={{fontSize:13,fontWeight:700,color:'var(--fg)'}}>AI Pattern Analysis</div>
+                        {!reasonsAI && !reasonsAILoading && (
+                          <button className="btn primary" onClick={generateReasonsAI}
+                            style={{fontSize:11,padding:'5px 14px'}}>Generate</button>
+                        )}
+                        {reasonsAILoading && <span style={{fontSize:11,color:'var(--fg-4)'}}>Analysing...</span>}
+                      </div>
+                      {reasonsAI?.length > 0 ? (
+                        <ul style={{margin:0,paddingLeft:18,color:'var(--fg-2)',fontSize:13,lineHeight:1.8}}>
+                          {reasonsAI.map((b,i) => <li key={i}>{b}</li>)}
+                        </ul>
+                      ) : !reasonsAILoading && (
+                        <div style={{fontSize:12,color:'var(--fg-4)'}}>Click Generate to analyse refund patterns with AI</div>
+                      )}
+                    </div>
+
+                    {/* Category Breakdown */}
+                    {reasonsData.categories?.length > 0 && (
+                      <div style={{background:'var(--bg-1)',border:'1px solid var(--border)',
+                        borderRadius:10,padding:'18px 22px',marginBottom:16}}>
+                        <div style={{fontSize:13,fontWeight:700,color:'var(--fg)',marginBottom:14}}>
+                          Pain Point Categories <span style={{fontWeight:400,color:'var(--fg-4)',fontSize:11}}>({reasonsData.total} total)</span>
+                        </div>
+                        {reasonsData.categories.map((c,i) => {
+                          const pct = Math.round(c.count / reasonsData.total * 100);
+                          const colors = ['var(--red)','var(--amber)','var(--indigo)','var(--green)','var(--fg-3)'];
+                          const color = colors[i % colors.length];
+                          return (
+                            <div key={i} style={{marginBottom:12}}>
+                              <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:4}}>
+                                <span style={{fontWeight:600,color:'var(--fg-2)'}}>{c.category}</span>
+                                <span style={{color,fontWeight:700}}>{c.count} <span style={{color:'var(--fg-4)',fontWeight:400}}>({pct}%)</span></span>
+                              </div>
+                              <div style={{height:6,background:'var(--border)',borderRadius:3,overflow:'hidden'}}>
+                                <div style={{width:`${pct}%`,height:'100%',background:color,borderRadius:3,transition:'width 0.4s'}} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Detailed Table */}
+                    <div style={{background:'var(--bg-1)',border:'1px solid var(--border)',borderRadius:10,overflow:'hidden'}}>
+                      <div style={{padding:'14px 20px',borderBottom:'1px solid var(--border)',
+                        display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                        <div style={{fontSize:13,fontWeight:700,color:'var(--fg)'}}>All Refund Cases</div>
+                        <div style={{fontSize:11,color:'var(--fg-4)'}}>{reasonsData.rows.length} cases</div>
+                      </div>
+                      <div style={{overflowX:'auto'}}>
+                        <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                          <thead>
+                            <tr style={{background:'var(--bg-2)'}}>
+                              {['Email','Batch','PSA','Category','Stated Reason','Identified Reason','Actions Taken','BD Informed','Outcome'].map(h => (
+                                <th key={h} style={{padding:'8px 12px',textAlign:'left',fontWeight:600,
+                                  color:'var(--fg-3)',borderBottom:'1px solid var(--border)',whiteSpace:'nowrap'}}>
+                                  {h}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {reasonsData.rows.map((r,i) => (
+                              <tr key={i} style={{borderBottom:'1px solid var(--border)',
+                                background: i%2===0 ? 'transparent' : 'var(--bg-2)'}}>
+                                <td style={{padding:'8px 12px',color:'var(--fg-2)',maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.email}</td>
+                                <td style={{padding:'8px 12px',color:'var(--fg-2)',whiteSpace:'nowrap'}}>{r.batch}</td>
+                                <td style={{padding:'8px 12px',color:'var(--fg-2)',whiteSpace:'nowrap'}}>{r.psa?.split('@')[0]}</td>
+                                <td style={{padding:'8px 12px'}}>
+                                  {r.category && (
+                                    <span style={{padding:'2px 8px',borderRadius:6,fontSize:10,fontWeight:600,
+                                      background:'var(--indigo-soft)',color:'var(--indigo)'}}>
+                                      {r.category}
+                                    </span>
+                                  )}
+                                </td>
+                                <td style={{padding:'8px 12px',color:'var(--fg-3)',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={r.stated}>{r.stated}</td>
+                                <td style={{padding:'8px 12px',color:'var(--fg-2)',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={r.identified}>{r.identified}</td>
+                                <td style={{padding:'8px 12px',color:'var(--fg-3)',maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={r.actions}>{r.actions}</td>
+                                <td style={{padding:'8px 12px',textAlign:'center'}}>
+                                  <span style={{color: r.bd_informed?.toLowerCase()==='yes' ? 'var(--green)' : 'var(--fg-4)'}}>
+                                    {r.bd_informed?.toLowerCase()==='yes' ? '✓' : '—'}
+                                  </span>
+                                </td>
+                                <td style={{padding:'8px 12px',color:'var(--fg-3)',whiteSpace:'nowrap'}}>{r.outcome}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             {viewLevel === 'overall' && (
               <>
                 <div className="row row-2">
