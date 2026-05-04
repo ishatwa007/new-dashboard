@@ -398,18 +398,24 @@ async def get_ai_summary(req: SummaryRequest):
     if not req.items:
         return {"bullets": []}
 
+    # Filter out blank/meaningless items
+    meaningful = [i for i in req.items if i and len(str(i).strip()) > 5 and
+                  str(i).strip().lower() not in ('none','n/a','-','--','na','nil','plan your scaler journey')]
+    if not meaningful:
+        return {"bullets": ["No reasons or notes logged yet"]}
+
     system = (
-        "You are an ops analyst at an edtech company. "
-        "Respond ONLY with exactly 3 bullet points. "
-        "Each bullet must be under 12 words. "
-        "Be specific and factual. "
-        "Do NOT write: 'DNP', 'N/A', 'No data', preambles, headers, or any text outside the 3 bullets. "
-        "Format: one bullet per line starting with a dash."
+        "You are an ops analyst reviewing session data. "
+        "Summarise ONLY what is explicitly written in the input. "
+        "Do NOT infer, assume, fabricate, or add context not in the input. "
+        "If content is vague or sparse, state only what is there. "
+        "Return up to 3 bullet points, each under 15 words. "
+        "Start each with a dash. No preamble, no filler, no DNP mentions."
     )
 
     user = (
-        f"Analyse these {req.context} and identify the key patterns:\n" +
-        "\n".join(f"- {item}" for item in req.items[:20])
+        f"Analyse these {req.context} and identify key patterns:\n" +
+        "\n".join(f"- {item}" for item in meaningful[:20])
     )
 
     # Try OpenAI first

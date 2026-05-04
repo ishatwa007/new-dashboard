@@ -183,15 +183,14 @@ def summarize_lsm_notes(notes_list: List[str], max_bullets: int = 4) -> List[str
         return cached.get("bullets", [])
 
     system = (
-        "You are an ops analyst at an edtech company reviewing PSA call notes after a class. "
-        "Rewrite the notes into clean, readable bullet points for a manager. "
-        "Use plain professional English. Remove ops jargon, abbreviations, and shorthand. "
-        "Expand short notes into clear full sentences where possible. "
-        "Stick strictly to what is written — do not add assumptions or new information. "
-        f"Return {max_bullets} bullets max, each under 15 words. "
-        "Start each bullet with a dash. No preamble, no numbering."
+        "You are an ops analyst reviewing session notes. "
+        "Summarise ONLY what is explicitly written in the input. "
+        "If the input contains mostly blank, empty, or meaningless entries, "
+        "respond with exactly: '- No reasons logged yet' and nothing else. "
+        "Do NOT infer, assume, fabricate, or add context not present in the input. "
+        "If there is real content, return up to 3 bullet points under 15 words each. "
+        "Start each bullet with a dash. No preamble, no numbering, no filler."
     )
-    user = f"PSA call notes from low-rated class sessions:\n{joined}"
     answer = _groq_call(system, user, max_tokens=200)
 
     bullets = []

@@ -214,12 +214,24 @@ function MentorPage({ cohort }) {
   const generateSummary = async (key, items, context) => {
     if (aiSummaries[key] || aiLoading[key]) return;
     if (!items?.length) return;
+
+    // Filter out blank/meaningless items before sending to AI
+    const meaningful = items.filter(i => {
+      if (!i || i.trim().length < 5) return false;
+      const low = i.trim().toLowerCase();
+      return !['n/a','none','-','--','na','nil','plan your scaler journey'].includes(low);
+    });
+    if (!meaningful.length) {
+      setAiSummaries(p => ({...p,[key]:['No reasons or notes logged yet']}));
+      return;
+    }
+
     setAiLoading(p => ({...p,[key]:true}));
     try {
       const res = await fetch(`${window.API_BASE || 'https://Bhagwan007-scaler-ops-backend.hf.space'}/api/ai/summary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items, context: context || 'mentor sessions' })
+        body: JSON.stringify({ items: meaningful, context: context || 'mentor sessions' })
       });
       const json = await res.json();
       setAiSummaries(p => ({...p,[key]: json.bullets || []}));
