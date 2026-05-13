@@ -66,9 +66,10 @@ def compute_kpis(df: pd.DataFrame, oms_refunds: dict = None) -> dict:
     GTN = (Complete - Refunded from Complete) / Total × 100
     oms_refunds param kept for backward compat but ignored.
     """
-    total    = len(df)
-    complete = len(df[df["sale_status"] == "COMPLETE"])
-    pending  = len(df[df["sale_status"] == "PENDING"])
+    valid_df = df[df["sale_status"].isin(["COMPLETE", "PENDING"])]
+    total    = len(valid_df)
+    complete = len(valid_df[valid_df["sale_status"] == "COMPLETE"])
+    pending  = len(valid_df[valid_df["sale_status"] == "PENDING"])
     pct_complete = _safe_pct(complete, total)
 
     # ── Refund signal: AR column = True ──────────────────────────────────────
@@ -109,7 +110,7 @@ def compute_kpis(df: pd.DataFrame, oms_refunds: dict = None) -> dict:
     else:
         gtn_df = df  # fallback: use all if no program column
 
-    gtn_total    = len(gtn_df)
+    gtn_total    = int(gtn_df["sale_status"].isin(["COMPLETE", "PENDING"]).sum())
     gtn_complete = int((gtn_df["sale_status"] == "COMPLETE").sum())
     gtn_refunded = int(
         ((gtn_df.get("refunded", pd.Series(False, index=gtn_df.index)) == True) &
