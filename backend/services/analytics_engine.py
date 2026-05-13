@@ -79,16 +79,16 @@ def compute_kpis(df: pd.DataFrame, oms_refunds: dict = None) -> dict:
     pct_complete = _safe_pct(complete, total)
 
     # ── Refund signal: AR column = True ──────────────────────────────────────
-    is_refunded = df.get("refunded", pd.Series(False, index=df.index)) == True
-    is_complete = df["sale_status"] == "COMPLETE"
-    is_pending  = df["sale_status"] == "PENDING"
+    is_refunded = _main_df.get("refunded", pd.Series(False, index=_main_df.index)) == True
+    is_complete = _main_df["sale_status"] == "COMPLETE"
+    is_pending  = _main_df["sale_status"] == "PENDING"
 
     refunded    = int(is_refunded.sum())
     refunded_c  = int((is_refunded & is_complete).sum())
     refunded_p  = int((is_refunded & is_pending).sum())
 
     # ── Refund requested (separate signal for tracking pipeline) ─────────────
-    is_req    = df.get("refund_requested", pd.Series(False, index=df.index)) == True
+    is_req    = _main_df.get("refund_requested", pd.Series(False, index=_main_df.index)) == True
     ref_req   = int(is_req.sum())
     ref_req_c = int((is_req & is_complete).sum())
     ref_p     = int((is_req & is_pending).sum())
@@ -125,7 +125,7 @@ def compute_kpis(df: pd.DataFrame, oms_refunds: dict = None) -> dict:
     gtn = _safe_pct(gtn_complete - gtn_refunded, gtn_total) if gtn_total > 0 else 0
 
     # ── Pre/post MnG ─────────────────────────────────────────────────────────
-    refund_df = df[is_refunded].copy()
+    refund_df = _main_df[_main_df.get("refunded", pd.Series(False, index=_main_df.index)) == True].copy()
     if not refund_df.empty:
         refund_df["mng_timing"] = refund_df.apply(_mng_timing, axis=1)
         pre_mng  = len(refund_df[refund_df["mng_timing"] == "pre_mng"])
@@ -135,12 +135,12 @@ def compute_kpis(df: pd.DataFrame, oms_refunds: dict = None) -> dict:
 
     # ── First Call Refunds (FEC) ──────────────────────────────────────────────
     fec_refunds = 0
-    if "refund_in_fec" in df.columns:
-        fec_refunds = int(df["refund_in_fec"].notna().sum())
+    if "refund_in_fec" in _main_df.columns:
+        fec_refunds = int(_main_df["refund_in_fec"].notna().sum())
 
     # ── Probable ─────────────────────────────────────────────────────────────
-    probable_total    = len(df[df["probable_id"].notna()]) if "probable_id" in df.columns else 0
-    probable_refunded = int((is_refunded & df["probable_id"].notna()).sum()) if "probable_id" in df.columns else 0
+    probable_total    = len(_main_df[_main_df["probable_id"].notna()]) if "probable_id" in _main_df.columns else 0
+    probable_refunded = int((is_refunded & _main_df["probable_id"].notna()).sum()) if "probable_id" in _main_df.columns else 0
 
     retained_c   = ref_req_c - refunded_c
     retained_pct = _safe_pct(retained_c, ref_req_c) if ref_req_c > 0 else 0
