@@ -842,7 +842,7 @@ function LoginGate({ onLogin }) {
 // ── App shell ───────────────────────────────────────────────────────────────
 function App() {
   const _initCohorts = (window.MOCK && window.MOCK.cohorts) || [];
-  const _initCohort  = _initCohorts.find(c=>c.id==='apr26') || _initCohorts[0] || {id:'april2026', label:'Apr 2026', size:0};
+  const _initCohort  = _initCohorts[_initCohorts.length-1] || _initCohorts[0] || {id:'april2026', label:'Apr 2026', size:0};
 
   const [authed, setAuthed]        = useState(()=>sessionStorage.getItem('app-authed')==='1');
   const [page,setPage]             = useState(()=>{
@@ -874,7 +874,7 @@ function App() {
         // Set default cohort to april2026 if not already set to a real one
         const currentIsReal = mapped.find(c => c.id === cohort?.id);
         if (!currentIsReal) {
-          const apr = mapped.find(c => c.id === 'april2026') || mapped[mapped.length - 1];
+          const apr = mapped[mapped.length - 1];  // always default to latest cohort
           if (apr) setCohort(apr);
         }
       }
