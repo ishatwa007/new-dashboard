@@ -110,7 +110,7 @@ def compute_kpis(df: pd.DataFrame, oms_refunds: dict = None) -> dict:
     else:
         gtn_df = df  # fallback: use all if no program column
 
-    gtn_total    = int(gtn_df["sale_status"].isin(["COMPLETE", "PENDING"]).sum())
+    gtn_total    = len(gtn_df)  # all GTN program learners, including pending/blank
     gtn_complete = int((gtn_df["sale_status"] == "COMPLETE").sum())
     gtn_refunded = int(
         ((gtn_df.get("refunded", pd.Series(False, index=gtn_df.index)) == True) &
