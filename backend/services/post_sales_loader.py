@@ -162,7 +162,8 @@ def parse_classes_tab(raw: list) -> tuple[list, list, list]:
                 for cn in range(1, 7)
             }
 
-        dynamic_cols = _build_class_cols(headers)
+        headers = raw[1] if len(raw) > 1 else []
+    dynamic_cols = _build_class_cols(headers)
     for cn, (r_col, live_col, overall_col, psp_col, connect_col, notes_col) in dynamic_cols.items():
             # Rating
             r_val = _safe_float(row[r_col] if r_col < len(row) else None, cap=5)
