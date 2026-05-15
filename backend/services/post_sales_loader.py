@@ -166,7 +166,7 @@ def parse_classes_tab(raw: list) -> tuple[list, list, list]:
     dynamic_cols = _build_class_cols(headers)
     for cn, (r_col, live_col, overall_col, psp_col, connect_col, notes_col) in dynamic_cols.items():
             # Rating
-            r_val = _safe_float(row[r_col] if r_col < len(row) else None, cap=5)
+            r_val = _safe_float(row[r_col] if r_col is not None and r_col < len(row) else None, cap=5)
             if r_val is not None:
                 batch_data[batch][cn]["ratings"].append(r_val)
                 if r_val <= 3:
