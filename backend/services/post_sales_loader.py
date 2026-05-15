@@ -38,15 +38,52 @@ C_PSA     = 4   # E = Primary Owner Email
 C_PAY     = 6   # G = Payment Status
 C_REFUND  = 7   # H = Refund Status
 
-# Per-class columns: (rating, live_att, overall_att, psp, connect, notes)
+# Per-class columns built dynamically from headers — see _build_class_cols()
 CLASS_COLS = {
-    1: (12, 13, 14, 15, 16, 17),   # M, N, O, P, Q, R
-    2: (18, 19, 20, 21, 22, 23),   # S, T, U, V, W, X
-    3: (24, 25, 26, 27, 28, 29),   # Y, Z, AA, AB, AC, AD
-    4: (30, 31, 32, None, 33, 34), # AE, AF, AG, -, AH, AI
-    5: (35, None, 36, 37, 44, 45), # AJ, -, AK, AL, AS, AT
-    6: (38, None, 39, 40, None, None),  # AM, -, AN, AO, -, -
+    1: (12, 13, 14, 15, 16, 17),
+    2: (18, 19, 20, 21, 22, 23),
+    3: (24, 25, 26, 27, 28, 29),
+    4: (30, 31, 32, None, 33, 34),
+    5: (35, None, 36, 37, 44, 45),
+    6: (38, None, 39, 40, None, None),
 }
+
+def _build_class_cols(headers: list) -> dict:
+    """Build class column mapping from header names — handles different sheet layouts."""
+    import re
+    cols = {}
+    # Find columns by header name patterns
+    def find(patterns):
+        for i, h in enumerate(headers):
+            hl = str(h).lower().strip()
+            for p in patterns:
+                if p in hl:
+                    return i
+        return None
+
+    for cn in range(1, 10):
+        ordinals = {1:'1st',2:'2nd',3:'3rd',4:'4th',5:'5th',6:'6th',7:'7th',8:'8th',9:'9th'}
+        o = ordinals.get(cn, str(cn))
+        rating  = find([f'{o} class rating'])
+        live    = find([f'{o} class live'])
+        overall = find([f'{o} class overall'])
+        psp     = find([f'{o} class psp', f'{o} class attendance psp'])
+        # Connect and notes follow the class columns
+        connect = None
+        notes   = None
+        # Find connect/notes after the class rating
+        if rating is not None:
+            for i in range(rating+1, min(rating+8, len(headers))):
+                h = str(headers[i]).lower().strip()
+                if 'connect' in h and connect is None:
+                    connect = i
+                if 'note' in h and notes is None:
+                    notes = i
+                if connect and notes:
+                    break
+        if any(v is not None for v in [rating, live, overall]):
+            cols[cn] = (rating, live, overall, psp, connect, notes)
+    return cols if cols else CLASS_COLS
 
 # Ratings Sheet tab columns (0-based)
 RS_BATCH       = 0  # A = Batches
@@ -125,7 +162,8 @@ def parse_classes_tab(raw: list) -> tuple[list, list, list]:
                 for cn in range(1, 7)
             }
 
-        for cn, (r_col, live_col, overall_col, psp_col, connect_col, notes_col) in CLASS_COLS.items():
+        dynamic_cols = _build_class_cols(headers)
+    for cn, (r_col, live_col, overall_col, psp_col, connect_col, notes_col) in dynamic_cols.items():
             # Rating
             r_val = _safe_float(row[r_col] if r_col < len(row) else None, cap=5)
             if r_val is not None:
