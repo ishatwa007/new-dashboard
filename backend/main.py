@@ -340,6 +340,21 @@ async def classify_req(body: ClassifyRequest):
 # PAGE 4: MENTOR NO SHOWS
 # =============================================================================
 
+@app.get("/api/classroom/debug/{cohort_id}")
+async def debug_classroom(cohort_id: str):
+    try:
+        from config import get_postsales_id
+        postsales_id = get_postsales_id(cohort_id)
+        if not postsales_id:
+            return {"error": "no postsales sheet", "cohort_id": cohort_id}
+        gc = _get_gc()
+        sh = gc.open_by_key(postsales_id)
+        tabs = [w.title for w in sh.worksheets()]
+        return {"cohort_id": cohort_id, "sheet_id": postsales_id[:20], "tabs": tabs}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @app.get("/api/classroom/{cohort_id}")
 async def get_classroom(cohort_id: str):
     try:
@@ -347,19 +362,21 @@ async def get_classroom(cohort_id: str):
         from services.post_sales_loader import load_postsales_classroom
         postsales_id = get_postsales_id(cohort_id)
         if not postsales_id:
-            return {"class_ratings": [], "low_raters": [], "class_missed": [], "cohort_id": cohort_id}
+            return {"class_ratings": [], "low_raters": [], "class_missed": [], "cohort_id": cohort_id, "error": "no sheet"}
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(None, load_postsales_classroom, _get_gc(), postsales_id)
         class_ratings, low_raters, instructor_map, class_missed = result
+        logger.info(f"Classroom {cohort_id}: {len(class_ratings)} batches, {len(low_raters)} low raters")
         return {
-            "cohort_id":    cohort_id,
+            "cohort_id":     cohort_id,
             "class_ratings": class_ratings,
             "low_raters":    low_raters,
             "class_missed":  class_missed,
+            "debug": {"batches": len(class_ratings), "low_raters": len(low_raters)}
         }
     except Exception as e:
-        logger.error(f"classroom error: {e}")
-        return {"class_ratings": [], "low_raters": [], "class_missed": [], "cohort_id": cohort_id}
+        logger.error(f"classroom error {cohort_id}: {e}", exc_info=True)
+        return {"class_ratings": [], "low_raters": [], "class_missed": [], "cohort_id": cohort_id, "error": str(e)}
 
 
 @app.get("/api/mentor/noshows/{cohort_id}")
