@@ -135,26 +135,41 @@ def parse_classes_tab(raw: list) -> tuple[list, list, list]:
     low_raters = []
     class_missed = []
 
-    for row in raw[CLASSES_DATA_START:]:
-        if not row or len(row) < 5:
+        for row in raw[CLASSES_DATA_START:]:
+        if not row or len(row) < 3:
             continue
 
-        email = _safe_str(row[C_EMAIL]).lower()
-        if not email or email in ("email", "punched mail id", "nan"):
-            continue
+        email = _safe_str(row[C_EMAIL] if C_EMAIL < len(row) else "").lower()
+        if not email or email in ("email", "punched mail id", "nan", ""):
+            # Also try column 2 as fallback for email
+            if len(row) > 2:
+                email = _safe_str(row[2]).lower()
+            if not email or email in ("email", "punched mail id", "nan", ""):
+                continue
+        
+        # Debug log for first few rows
+        if len(batch_data) < 3:
+            log.info(f"DEBUG: Processing row - email={email}, batch_col={C_BATCH}, batch_val={row[C_BATCH] if C_BATCH < len(row) else 'MISSING'}, row_len={len(row)}"
 
-        # Prefer Batch (col I) over Segment (col D)
+                # Prefer Batch (col J) over Segment (col D)
         batch = _safe_str(row[C_BATCH]) if C_BATCH < len(row) else ""
         if not batch:
-            batch = _safe_str(row[C_SEGMENT])
-        if not batch or batch.lower() in ("batch", "segment", ""):
+            batch = _safe_str(row[C_SEGMENT]) if C_SEGMENT < len(row) else ""
+        if not batch:
+            # Try column 10 if available (some sheets have batch there)
+            if len(row) > 10:
+                batch = _safe_str(row[10])
+        if not batch or batch.lower() in ("batch", "segment", "", "nan", "#n/a"):
             continue
-
+            
         name = _safe_str(row[0]) if len(row) > 0 else ""
         psa = _safe_str(row[C_PSA]) if C_PSA < len(row) else ""
-        pay = row[C_PAY] if C_PAY < len(row) else ""
-        ref = row[C_REFUND] if C_REFUND < len(row) else ""
-        sale_status = _sale_status(pay, ref)
+        pay = _safe_str(row[C_PAY]) if C_PAY < len(row) else ""
+        ref = _safe_str(row[C_REFUND]) if C_REFUND < len(row) else ""
+        
+        # Debug log
+        if len(batch_data) < 5:
+            log.info(f"DEBUG ROW {len(batch_data)+1}: email={email}, batch={batch}, pay={pay}, ref={ref}, sale_status={_sale_status(pay, ref)}")
 
         if batch not in batch_data:
             batch_data[batch] = {
