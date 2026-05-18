@@ -121,37 +121,38 @@ def _sale_status(pay_val, refund_val) -> str:
         return "COMPLETE"
     return "PENDING"
 
-
 def parse_classes_tab(raw: list) -> tuple[list, list, list]:
     """
     Parse the Classes tab from Post Sales tracker.
     Returns (class_ratings, low_raters, class_missed).
     class_missed = learners with live_att == 0 for a class.
     """
+    log.info(f"DEBUG: parse_classes_tab called with {len(raw)} rows")
+    
     if len(raw) < 3:
+        log.warning(f"DEBUG: Not enough rows - raw length: {len(raw)}")
         return [], [], []
-
+    
+    log.info(f"DEBUG: First row (row 0): {raw[0][:10] if raw[0] else 'empty'}")
+    log.info(f"DEBUG: Second row (row 1/headers): {raw[1][:10] if len(raw) > 1 and raw[1] else 'empty'}")
+    log.info(f"DEBUG: Third row (row 2/first data): {raw[2][:10] if len(raw) > 2 and raw[2] else 'empty'}")
+    
     batch_data = {}
     low_raters = []
     class_missed = []
 
-        for row in raw[CLASSES_DATA_START:]:
+    for row in raw[CLASSES_DATA_START:]:
         if not row or len(row) < 3:
             continue
 
         email = _safe_str(row[C_EMAIL] if C_EMAIL < len(row) else "").lower()
         if not email or email in ("email", "punched mail id", "nan", ""):
-            # Also try column 2 as fallback for email
             if len(row) > 2:
                 email = _safe_str(row[2]).lower()
             if not email or email in ("email", "punched mail id", "nan", ""):
                 continue
         
-        # Debug log for first few rows
-        if len(batch_data) < 3:
-            log.info(f"DEBUG: Processing row - email={email}, batch_col={C_BATCH}, batch_val={row[C_BATCH] if C_BATCH < len(row) else 'MISSING'}, row_len={len(row)}"
-
-                # Prefer Batch (col J) over Segment (col D)
+        # Prefer Batch (col J) over Segment (col D)
         batch = _safe_str(row[C_BATCH]) if C_BATCH < len(row) else ""
         if not batch:
             batch = _safe_str(row[C_SEGMENT]) if C_SEGMENT < len(row) else ""
@@ -167,15 +168,17 @@ def parse_classes_tab(raw: list) -> tuple[list, list, list]:
         pay = _safe_str(row[C_PAY]) if C_PAY < len(row) else ""
         ref = _safe_str(row[C_REFUND]) if C_REFUND < len(row) else ""
         
-        # Debug log
+        # Debug log for first 5 rows
         if len(batch_data) < 5:
-            log.info(f"DEBUG ROW {len(batch_data)+1}: email={email}, batch={batch}, pay={pay}, ref={ref}, sale_status={_sale_status(pay, ref)}")
-
+            log.info(f"DEBUG ROW {len(batch_data)+1}: email={email}, batch={batch}, pay={pay}, ref={ref}")
+        
+        sale_status = _sale_status(pay, ref)
+        
         if batch not in batch_data:
-            batch_data[batch] = {
+            batch_data[batch] = {  
                 cn: {"ratings": [], "atts": [], "psps": [], "overall_atts": []}
                 for cn in range(1, 7)
-            }
+            }            
 
         headers = raw[1] if len(raw) > 1 else []
     dynamic_cols = _build_class_cols(headers)
