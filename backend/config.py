@@ -40,7 +40,7 @@ def _build_postsales_map() -> dict:
 
 POSTSALES_MAP: dict = _build_postsales_map()
 
-def get_postsales_id(cohort_id: str) -> str | None:
+def get_postsales_id(cohort_id: str):
     """Return Post Sales sheet ID for a given cohort_id, or None if not configured."""
     return POSTSALES_MAP.get(cohort_id.lower().strip())
 

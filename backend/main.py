@@ -6,6 +6,17 @@ CORS enabled. Google Sheets based. Groq AI classification.
 
 import os
 import logging
+import math
+
+def sanitize_for_json(obj):
+    """Replace NaN/Inf with None for JSON serialization"""
+    if isinstance(obj, float):
+        return None if math.isnan(obj) or math.isinf(obj) else obj
+    elif isinstance(obj, dict):
+        return {k: sanitize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize_for_json(item) for item in obj]
+    return obj
 import asyncio
 import time
 from contextlib import asynccontextmanager
@@ -175,7 +186,7 @@ async def list_cohorts():
 
 @app.get("/analytics/{cohort_id}")
 async def get_analytics(
-    cohort_id: str,
+    cohort_id: str, 
     background_tasks: BackgroundTasks,
     refresh: bool = Query(False),
 ):
@@ -184,7 +195,7 @@ async def get_analytics(
 
     cached = cache.get(cohort_id)
     if cached:
-        return cached
+        return sanitize_for_json(cached)
 
     if _state.funnel_df.empty:
         raise HTTPException(503, "Funnel data not yet loaded. Try again shortly.")
@@ -202,7 +213,7 @@ async def get_analytics(
     }
 
     cache.set(cohort_id, analytics, ttl_seconds=CACHE_TTL_MINUTES * 60)
-    return analytics
+    return sanitize_for_json(analytics)
 
 
 @app.get("/analytics/{cohort_id}/entity")
@@ -259,7 +270,8 @@ async def get_psas(cohort_id: str):
         return {"psas": [], "cohort": cohort_id}
     cid = cohort_id.strip().lower()
     df = _state.funnel_df[_state.funnel_df["cohort_id"] == cid]
-    return {"psas": compute_psas(df), "cohort": cid}
+    psas_data = compute_psas(df)
+    return {"psas": sanitize_for_json(psas_data), "cohort": cid}
 
 
 @app.get("/api/lsm-stats")

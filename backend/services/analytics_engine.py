@@ -10,6 +10,17 @@ Key rules:
 """
 
 import logging
+import math
+
+def sanitize_analytics(data):
+    """Recursively sanitize all float values in analytics data"""
+    if isinstance(data, dict):
+        return {k: sanitize_analytics(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [sanitize_analytics(item) for item in data]
+    elif isinstance(data, float):
+        return 0.0 if math.isnan(data) or math.isinf(data) else data
+    return data
 import pandas as pd
 from typing import Optional
 
@@ -558,6 +569,7 @@ def merge_persona_reasons(funnel_df: pd.DataFrame,
 
 # -- top-level entry ----------------------------------------------------------
 
+
 def build_cohort_analytics(cohort_id: str,
                             funnel_df: pd.DataFrame,
                             persona_df: pd.DataFrame,
@@ -572,7 +584,7 @@ def build_cohort_analytics(cohort_id: str,
     df["week_of_sale"] = df["week_of_sale"].str.lower().str.strip()
     df = merge_persona_reasons(df, persona_df)
 
-    return {
+    result = {
         "cohort_id":              cohort_id,
         "kpis":                   compute_kpis(df),
         "programs":               compute_programs(df),
@@ -587,3 +599,4 @@ def build_cohort_analytics(cohort_id: str,
         "psas":                   compute_psas(df),
         "reasons":                compute_classified_reasons(df, persona_df),
     }
+    return sanitize_analytics(result)
