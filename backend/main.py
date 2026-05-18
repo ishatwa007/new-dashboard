@@ -795,6 +795,35 @@ async def debug_persona(cohort_id: str):
     except Exception as e:
         return {"error": str(e), "cohort": cohort_id}
 
+@app.get("/debug/sheet-raw/{cohort_id}")
+async def debug_sheet_raw(cohort_id: str):
+    from config import get_postsales_id
+    from services.sheets_loader import _get_client
+    from services.post_sales_loader import C_EMAIL, C_BATCH, C_PAY, C_REFUND
+    
+    sheet_id = get_postsales_id(cohort_id)
+    if not sheet_id:
+        return {"error": "No sheet ID found"}
+    
+    gc = _get_client()
+    try:
+        wb = gc.open_by_key(sheet_id)
+        ws = wb.worksheet("Classes")
+        raw_data = ws.get_all_values()
+        
+        return {
+            "cohort": cohort_id,
+            "total_rows": len(raw_data),
+            "total_cols": len(raw_data[0]) if raw_data else 0,
+            "headers_row_index_1": raw_data[1] if len(raw_data) > 1 else [],
+            "first_data_row_index_2": raw_data[2] if len(raw_data) > 2 else [],
+            "email_at_C_EMAIL": raw_data[2][C_EMAIL] if len(raw_data) > 2 and len(raw_data[2]) > C_EMAIL else "NOT FOUND",
+            "batch_at_C_BATCH": raw_data[2][C_BATCH] if len(raw_data) > 2 and len(raw_data[2]) > C_BATCH else "NOT FOUND",
+            "pay_at_C_PAY": raw_data[2][C_PAY] if len(raw_data) > 2 and len(raw_data[2]) > C_PAY else "NOT FOUND",
+            "refund_at_C_REFUND": raw_data[2][C_REFUND] if len(raw_data) > 2 and len(raw_data[2]) > C_REFUND else "NOT FOUND",
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
