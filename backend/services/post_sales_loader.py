@@ -32,11 +32,11 @@ CLASSES_DATA_START = 2   # 0-indexed
 
 # Col mapping (0-based) based on actual Post Sales tracker layout
 C_EMAIL   = 1   # B = Email
-C_BATCH   = 8   # I = Batch  (D = Segment also works as fallback)
-C_SEGMENT = 3   # D = Segment
+C_BATCH   = 9   # J = Batch (0-indexed, so column J is index 9)
+C_SEGMENT = 3   # D = Segment  
 C_PSA     = 4   # E = Primary Owner Email
-C_PAY     = 6   # G = Payment Status
-C_REFUND  = 7   # H = Refund Status
+C_PAY     = 7   # H = Payment Status (since G is AVP, H is Payment Status)
+C_REFUND  = 8   # I = Refund Status
 
 # Per-class columns built dynamically from headers — see _build_class_cols()
 CLASS_COLS = {
