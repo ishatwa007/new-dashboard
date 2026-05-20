@@ -164,12 +164,8 @@ function AnalyticsPage({ cohort, setCohort }) {
         setRealCohorts(mapped);
         if(window.MOCK && window.MOCK.cohorts){window.MOCK.cohorts.length = 0;
         mapped.slice().reverse().forEach(c => window.MOCK.cohorts.push(c));}
-        // Only auto-set cohort if current one isn't in the real list yet
-        const currentIsReal = mapped.find(c => c.id === activeCohort?.id);
-        if (!currentIsReal) {
-          const apr = mapped.find(c=>c.id==='april2026') || mapped[mapped.length - 1];
-          if (apr) setActiveCohort(apr);
-        }
+        const latest = mapped[mapped.length - 1];
+        if (latest) setActiveCohort(latest);
 
         // Build GTN trend from real cohort list
         const trend = mapped.filter(c => c.gtn > 0).map(c => ({
@@ -874,12 +870,8 @@ function App() {
         }));
         setAllCohorts(mapped);
         window.MOCK.cohorts = [...mapped].reverse();
-        // Set default cohort to april2026 if not already set to a real one
-        const currentIsReal = mapped.find(c => c.id === cohort?.id);
-        if (!currentIsReal) {
-          const apr = mapped[mapped.length - 1];  // always default to latest cohort
-          if (apr) setCohort(apr);
-        }
+        const latest = mapped[mapped.length - 1];
+        if (latest) setCohort(latest);
       }
     }).catch(() => {});
   }, []);
