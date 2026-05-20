@@ -141,6 +141,9 @@ def parse_classes_tab(raw: list) -> tuple[list, list, list]:
     low_raters = []
     class_missed = []
 
+    headers = raw[1] if len(raw) > 1 else []
+    dynamic_cols = _build_class_cols(headers)
+
     for row in raw[CLASSES_DATA_START:]:
         if not row or len(row) < 3:
             continue
@@ -175,14 +178,12 @@ def parse_classes_tab(raw: list) -> tuple[list, list, list]:
         sale_status = _sale_status(pay, ref)
         
         if batch not in batch_data:
-            batch_data[batch] = {  
+            batch_data[batch] = {
                 cn: {"ratings": [], "atts": [], "psps": [], "overall_atts": []}
                 for cn in range(1, 7)
-            }            
+            }
 
-        headers = raw[1] if len(raw) > 1 else []
-    dynamic_cols = _build_class_cols(headers)
-    for cn, (r_col, live_col, overall_col, psp_col, connect_col, notes_col) in dynamic_cols.items():
+        for cn, (r_col, live_col, overall_col, psp_col, connect_col, notes_col) in dynamic_cols.items():
             # Rating
             r_val = _safe_float(row[r_col] if r_col is not None and r_col < len(row) else None, cap=5)
             if r_val is not None:
@@ -220,7 +221,6 @@ def parse_classes_tab(raw: list) -> tuple[list, list, list]:
                     batch_data[batch][cn]["overall_atts"].append(overall)
 
             # Class missed = overall attendance < 20% (live or recording)
-            # Learners who watched recording (>=20%) are NOT counted as missed
             live_val = _safe_float(row[live_col] if live_col is not None and live_col < len(row) else None)
             missed_att = live_val if live_val is not None else overall
             if missed_att is not None and missed_att < 20:

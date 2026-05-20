@@ -19,9 +19,11 @@ const CT = {
 
 const crShortBatch = b => {
   if (!b) return '';
-  return b.replace('Academy Apr26 ', 'Acad ').replace('DSML Apr26 ', 'DSML ').replace('AIML Apr26 ', 'AIML ')
-    .replace('DevOps Apr26', 'DevOps').replace('Intermediate', 'Int').replace('Beginner', 'Beg')
-    .replace('Morning', 'AM').replace('Refresher', 'Ref').replace('Python ', 'Py ').replace('Java ', 'J ');
+  return b
+    .replace(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\d{2}\s*/g, '')
+    .replace('Academy', 'Acad').replace('Intermediate', 'Int').replace('Beginner', 'Beg')
+    .replace('Morning', 'AM').replace('Refresher', 'Ref').replace('Python ', 'Py ').replace('Java ', 'J ')
+    .trim();
 };
 const crShortEmail = e => e ? e.split('@')[0] : '';
 const crSafe = (v, d = 1) => (v != null && !isNaN(v)) ? Number(v).toFixed(d) : '--';
@@ -113,16 +115,24 @@ function ClassroomPage({ cohort }) {
     );
   }
 
-  if (!data) {
+  if (!data || data.error) {
+    const isNoSheet = data?.error === 'no sheet';
     return (
       <div style={{ textAlign: 'center', padding: 60, color: CT.txt4, fontFamily: CT.font }}>
-        <div style={{ fontSize: 32, marginBottom: 12 }}>{'\u26A0\uFE0F'}</div>
-        Failed to load classroom data. Check backend.
-        <div style={{ marginTop: 12 }}>
-          <button onClick={loadData} style={{ padding: '8px 18px', borderRadius: 0, border: 'none',
-            background: CT.accent, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-            fontFamily: CT.font }}>Retry</button>
+        <div style={{ fontSize: 32, marginBottom: 12 }}>{isNoSheet ? '\u{1F4CB}' : '\u26A0\uFE0F'}</div>
+        <div style={{ fontSize: 14, marginBottom: 8 }}>
+          {isNoSheet
+            ? 'No Post Sales sheet configured for this cohort.'
+            : 'Failed to load classroom data. Check backend.'}
         </div>
+        {isNoSheet && (
+          <div style={{ fontSize: 12, color: CT.txt4, maxWidth: 420, margin: '0 auto 16px' }}>
+            Set <code style={{ background: CT.card, padding: '2px 6px', fontSize: 11 }}>SHEET_POSTSALES_MAY2026</code> (or the relevant month) env var on the backend with the correct Google Sheet ID.
+          </div>
+        )}
+        <button onClick={loadData} style={{ padding: '8px 18px', borderRadius: 0, border: 'none',
+          background: CT.accent, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+          fontFamily: CT.font }}>Retry</button>
       </div>
     );
   }
