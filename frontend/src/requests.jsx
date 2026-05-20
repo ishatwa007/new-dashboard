@@ -209,7 +209,7 @@ window.SidePanel = ({ req, onClose, onApprove, onReject, allRows }) => {
               <dt>Program</dt><dd>{req.program}</dd>
               <dt>Sale status</dt><dd>
                 <span style={{
-                  display:'inline-block',padding:'1px 7px',borderRadius:4,fontSize:10.5,fontWeight:500,fontFamily:'var(--mono)',
+                  display:'inline-block',padding:'1px 7px',borderRadius:0,fontSize:10.5,fontWeight:500,fontFamily:'var(--mono)',
                   background:req.saleStatus==='Active'?'var(--green-soft)':req.saleStatus==='Refunded'?'var(--red-soft)':'var(--amber-soft)',
                   color:req.saleStatus==='Active'?'var(--green)':req.saleStatus==='Refunded'?'var(--red)':'var(--amber)'
                 }}>{req.saleStatus}</span>
@@ -357,8 +357,8 @@ window.Toast = ({ msg, tone='good', onDone }) => {
     <div style={{
       position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',
       background:'var(--bg-3)',color:'var(--fg)',border:'1px solid var(--border-3)',
-      borderRadius:8,padding:'10px 18px',fontSize:12.5,zIndex:300,
-      boxShadow:'0 12px 40px rgba(0,0,0,0.5)',display:'flex',alignItems:'center',gap:10
+      borderRadius:0,padding:'10px 18px',fontSize:12.5,zIndex:300,
+      boxShadow:'0 4px 16px rgba(11,21,41,0.1)',display:'flex',alignItems:'center',gap:10
     }}>
       <Icon name={tone==='bad'?'warn':'check'} size={14} style={{color:tone==='bad'?'var(--red)':'var(--green)',flexShrink:0}} />
       {msg}

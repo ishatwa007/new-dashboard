@@ -74,7 +74,7 @@ const T = {
   blue: 'var(--cyan)', blueBg: 'var(--cyan-soft)', blueTxt: 'var(--cyan)',
   purple: 'var(--violet)', purpleBg: 'var(--violet-soft)', purpleTxt: 'var(--violet)',
   thead: 'var(--bg-2)',
-  radius: 10,
+  radius: 0,
   font: "'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif",
 };
 
@@ -125,7 +125,7 @@ const Card = ({ children, title, subtitle, badge, accent, style = {} }) => (
           {subtitle && <div style={{ fontSize: 11, color: T.txt3, marginTop: 2, fontStyle: 'italic' }}>{subtitle}</div>}
         </div>
         {badge != null && <span style={{ background: T.redBg, color: T.red, fontSize: 11, fontWeight: 700,
-          padding: '2px 8px', borderRadius: 10 }}>{badge}</span>}
+          padding: '2px 8px', borderRadius: 0 }}>{badge}</span>}
       </div>
     )}
     {children}
@@ -148,19 +148,19 @@ const Pill = ({ label, active, count, onClick }) => (
     fontSize: 12, fontWeight: 600, fontFamily: T.font, transition: 'all 0.15s' }}>
     {label}
     {count != null && <span style={{ background: active ? T.accent : T.border, color: active ? '#fff' : T.txt3,
-      fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10, minWidth: 18, textAlign: 'center' }}>{count}</span>}
+      fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 0, minWidth: 18, textAlign: 'center' }}>{count}</span>}
   </button>
 );
 
 const StatusBadge = ({ status }) => {
   const s = statusStyle(status);
-  return <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 12, fontSize: 11,
+  return <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 0, fontSize: 11,
     fontWeight: 600, background: s.bg, color: s.color }}>{s.label}</span>;
 };
 
 const FlagBadge = ({ flag }) => {
   const s = flagStyle(flag);
-  return <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 10, fontSize: 10,
+  return <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 0, fontSize: 10,
     fontWeight: 700, background: s.bg, color: s.color }}>{flag}</span>;
 };
 
@@ -178,7 +178,7 @@ const Td = ({ children, align = 'left', bold, color, nowrap }) => (
 
 const Btn = ({ children, onClick, color = T.accent, small, outline, disabled, style = {} }) => (
   <button onClick={disabled ? undefined : onClick} disabled={disabled} style={{
-    padding: small ? '4px 12px' : '8px 18px', borderRadius: 8, border: outline ? `1px solid ${color}` : 'none',
+    padding: small ? '4px 12px' : '8px 18px', borderRadius: 0, border: outline ? `1px solid ${color}` : 'none',
     background: outline ? 'transparent' : disabled ? T.border : color, color: outline ? color : '#fff',
     fontSize: small ? 11 : 13, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer',
     fontFamily: T.font, opacity: disabled ? 0.5 : 1, transition: 'all 0.15s', ...style }}>
@@ -227,13 +227,13 @@ const ResolveModal = ({ incident, onConfirm, onClose, loading }) => {
   const [notes, setNotes] = usePH('');
   if (!incident) return null;
 
-  const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: 8,
+  const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: 0,
     border: `1px solid var(--border-2)`, background: 'var(--bg-2)', color: 'var(--fg)',
     fontSize: 13, fontFamily: T.font, outline: 'none', boxSizing: 'border-box' };
 
   return (
     <Modal open={true} onClose={onClose} title="Resolve Incident">
-      <div style={{ background: 'var(--bg-2)', borderRadius: 8, padding: 14, marginBottom: 16, fontSize: 12, color: 'var(--fg)' }}>
+      <div style={{ background: 'var(--bg-2)', borderRadius: 0, padding: 14, marginBottom: 16, fontSize: 12, color: 'var(--fg)' }}>
         <div><strong style={{color:'var(--fg)'}}>Type:</strong> <span style={{color:'var(--fg-2)'}}>{incident.incident_type}</span></div>
         <div><strong style={{color:'var(--fg)'}}>Batch:</strong> <span style={{color:'var(--fg-2)'}}>{incident.batch} | Class {incident.class_num}</span></div>
         <div style={{ marginTop: 6, color: 'var(--fg)' }}>{incident.details}</div>
@@ -271,13 +271,13 @@ const EscalateModal = ({ incident, onConfirm, onClose, loading }) => {
   const [reason, setReason] = usePH('');
   if (!incident) return null;
 
-  const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: 8,
+  const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: 0,
     border: `1px solid var(--border-2)`, background: 'var(--bg-2)', color: 'var(--fg)',
     fontSize: 13, fontFamily: T.font, outline: 'none', boxSizing: 'border-box' };
 
   return (
     <Modal open={true} onClose={onClose} title="Escalate Incident">
-      <div style={{ background: 'var(--bg-2)', borderRadius: 8, padding: 14, marginBottom: 16, fontSize: 12, color: 'var(--fg)' }}>
+      <div style={{ background: 'var(--bg-2)', borderRadius: 0, padding: 14, marginBottom: 16, fontSize: 12, color: 'var(--fg)' }}>
         <div><strong style={{color:'var(--fg)'}}>Type:</strong> <span style={{color:'var(--fg-2)'}}>{incident.incident_type}</span></div>
         <div><strong style={{color:'var(--fg)'}}>Batch:</strong> <span style={{color:'var(--fg-2)'}}>{incident.batch} | Class {incident.class_num}</span></div>
         <div style={{ marginTop: 6, color: 'var(--fg)' }}>{incident.details}</div>
@@ -319,7 +319,7 @@ const Toast = ({ message, type, onClose }) => {
   const bg = type === 'success' ? T.green : type === 'error' ? T.red : T.accent;
   return (
     <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 10000, background: bg, color: '#fff',
-      padding: '12px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, fontFamily: T.font,
+      padding: '12px 20px', borderRadius: 0, fontSize: 13, fontWeight: 600, fontFamily: T.font,
       boxShadow: '0 8px 24px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', gap: 10,
       animation: 'fadeInUp 0.3s ease' }}>
       {message}
@@ -349,7 +349,7 @@ const IncidentCard = ({ inc, onResolve, onEscalate }) => {
           <span style={{ fontSize: 18 }}>{typeIcon(inc.incident_type)}</span>
           <span style={{ fontSize: 13, fontWeight: 700, color: T.txt1 }}>{inc.incident_type}</span>
           {isRecordOnly
-            ? <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 12, fontSize: 11,
+            ? <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 0, fontSize: 11,
                 fontWeight: 600, background: T.thead, color: T.txt3 }}>Record Only</span>
             : <StatusBadge status={inc.status} />}
         </div>
@@ -446,7 +446,7 @@ const OverviewTab = ({ data }) => {
         {mentorAnalysis.length === 0 ? <Empty message="No mentor no-shows recorded" /> : (
           <div>
             {repeatOffenders.length > 0 && (
-              <div style={{ background: T.redBg, borderRadius: 8, padding: '12px 16px', marginBottom: 16,
+              <div style={{ background: T.redBg, borderRadius: 0, padding: '12px 16px', marginBottom: 16,
                 border: `1px solid ${T.red}30` }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: T.red, marginBottom: 4 }}>
                   {'\u26A0\uFE0F'} {repeatOffenders.length} repeat offender{repeatOffenders.length > 1 ? 's' : ''} detected
@@ -462,7 +462,7 @@ const OverviewTab = ({ data }) => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ fontSize: 14, fontWeight: 700, color: T.txt1 }}>{m.name}</span>
                     {m.is_repeat && (
-                      <span style={{ padding: '2px 8px', borderRadius: 10, background: T.redBg, color: T.red,
+                      <span style={{ padding: '2px 8px', borderRadius: 0, background: T.redBg, color: T.red,
                         fontSize: 10, fontWeight: 700 }}>REPEAT</span>
                     )}
                   </div>
@@ -471,7 +471,7 @@ const OverviewTab = ({ data }) => {
                       {m.total_noshows} no-show{m.total_noshows > 1 ? 's' : ''}
                     </span>
                     {m.unresolved > 0 && (
-                      <span style={{ padding: '2px 8px', borderRadius: 10, background: T.amberBg, color: T.amber,
+                      <span style={{ padding: '2px 8px', borderRadius: 0, background: T.amberBg, color: T.amber,
                         fontSize: 10, fontWeight: 700 }}>{m.unresolved} open</span>
                     )}
                   </div>
@@ -569,7 +569,7 @@ const ClassroomTab = ({ data, onResolve, onEscalate }) => {
       <div style={{ marginBottom: 20 }}>
         <input type="text" placeholder="Search by instructor name, email, or batch..."
           value={search} onChange={e => setSearch(e.target.value)}
-          style={{ width: '100%', maxWidth: 500, padding: '10px 16px', borderRadius: 10,
+          style={{ width: '100%', maxWidth: 500, padding: '10px 16px', borderRadius: 0,
             border: `1px solid ${T.border}`, fontSize: 13, fontFamily: T.font, outline: 'none',
             boxSizing: 'border-box', background: T.card }} />
       </div>
@@ -918,11 +918,11 @@ function ProgramHealth({ cohort }) {
             </span>
             {data.overview.open > 0 && (
               <span style={{ background: T.red, color: '#fff', fontSize: 11, fontWeight: 700,
-                padding: '2px 8px', borderRadius: 10 }}>{data.overview.open} Open</span>
+                padding: '2px 8px', borderRadius: 0 }}>{data.overview.open} Open</span>
             )}
             {data.overview.escalated > 0 && (
               <span style={{ background: T.amber, color: '#fff', fontSize: 11, fontWeight: 700,
-                padding: '2px 8px', borderRadius: 10 }}>{data.overview.escalated} Escalated</span>
+                padding: '2px 8px', borderRadius: 0 }}>{data.overview.escalated} Escalated</span>
             )}
           </div>
           <Btn small onClick={() => setTab('incidents')}>View All</Btn>
@@ -943,7 +943,7 @@ function ProgramHealth({ cohort }) {
             {t.label}
             {t.badge > 0 && (
               <span style={{ background: T.red, color: '#fff', fontSize: 10, fontWeight: 700,
-                padding: '1px 6px', borderRadius: 10, minWidth: 16, textAlign: 'center' }}>{t.badge}</span>
+                padding: '1px 6px', borderRadius: 0, minWidth: 16, textAlign: 'center' }}>{t.badge}</span>
             )}
           </button>
         ))}

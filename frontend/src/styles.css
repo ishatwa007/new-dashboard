@@ -1,6 +1,50 @@
 /* Scaler Refund Audit — Dashboard Styles */
 
 :root {
+  /* ── Scaler 3.0 — light mode default ────────────────────────────────── */
+  --bg: #FCFCFC;
+  --bg-1: #FFFFFF;
+  --bg-2: #F6F6F6;
+  --bg-3: #EEEEEC;
+  --bg-hover: #F0F0EE;
+  --border: #CAC0C0;
+  --border-2: #D1D1D1;
+  --border-3: #C4C4C4;
+
+  --fg: #0B1529;
+  --fg-2: #3D4352;
+  --fg-3: #696969;
+  --fg-4: #848484;
+
+  /* Scaler blue — var names kept for component compatibility */
+  --indigo: #0055FF;
+  --indigo-2: #004CE5;
+  --indigo-3: #003BB5;
+  --indigo-soft: rgba(0, 85, 255, 0.08);
+  --indigo-border: rgba(0, 85, 255, 0.2);
+
+  /* Status colors adapted for light background */
+  --green: #15803d;
+  --green-soft: rgba(21, 128, 61, 0.1);
+  --red: #dc2626;
+  --red-soft: rgba(220, 38, 38, 0.1);
+  --amber: #b45309;
+  --amber-soft: rgba(180, 83, 9, 0.1);
+  --cyan: #0891b2;
+  --cyan-soft: rgba(8, 145, 178, 0.1);
+  --pink: #be185d;
+  --pink-soft: rgba(190, 24, 93, 0.1);
+  --orange: #c2410c;
+  --orange-soft: rgba(194, 65, 12, 0.1);
+  --violet: #7c3aed;
+  --violet-soft: rgba(124, 58, 237, 0.1);
+
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --display: 'Clash Grotesk', 'Plus Jakarta Sans', ui-sans-serif, sans-serif;
+}
+
+[data-theme="dark"] {
   --bg: #0a0a0b;
   --bg-1: #0f0f11;
   --bg-2: #141417;
@@ -9,18 +53,15 @@
   --border: #222226;
   --border-2: #2a2a30;
   --border-3: #36363e;
-
   --fg: #ededef;
   --fg-2: #b4b4b8;
   --fg-3: #b8b8be;
   --fg-4: #8a8a90;
-
   --indigo: #7c7aed;
   --indigo-2: #6366f1;
   --indigo-3: #4f46e5;
   --indigo-soft: rgba(124, 122, 237, 0.12);
   --indigo-border: rgba(124, 122, 237, 0.28);
-
   --green: #4ade80;
   --green-soft: rgba(74, 222, 128, 0.11);
   --red: #f87171;
@@ -35,27 +76,6 @@
   --orange-soft: rgba(251, 146, 60, 0.11);
   --violet: #a78bfa;
   --violet-soft: rgba(167, 139, 250, 0.11);
-
-  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
-}
-
-[data-theme="light"] {
-  --bg: #fafaf9;
-  --bg-1: #ffffff;
-  --bg-2: #f5f5f4;
-  --bg-3: #eeeeec;
-  --bg-hover: #e7e7e4;
-  --border: #e5e5e2;
-  --border-2: #d8d8d4;
-  --border-3: #c4c4bf;
-  --fg: #18181b;
-  --fg-2: #44444a;
-  --fg-3: #4a4a50;
-  --fg-4: #6a6a70;
-  --indigo-soft: rgba(79, 70, 229, 0.08);
-  --indigo-border: rgba(79, 70, 229, 0.22);
-  --indigo: #4f46e5;
 }
 
 * { box-sizing: border-box; }
@@ -92,7 +112,7 @@ a:hover { text-decoration: underline; }
   top: 0;
   height: 100vh;
 }
-.brand { display: flex; align-items: center; gap: 9px; padding: 6px 8px 16px; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+.brand { display: flex; align-items: flex-start; gap: 9px; padding: 10px 8px 14px; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
 .brand-mark { width: 22px; height: 22px; border-radius: 5px;
   background: linear-gradient(135deg, var(--indigo-2), #8b5cf6);
   display: grid; place-items: center; color: white; font-weight: 700; font-size: 11px;
@@ -347,7 +367,7 @@ a:hover { text-decoration: underline; }
 .persona-bar-wrap { display: flex; align-items: center; gap: 5px; }
 .persona-bar { flex: 1; height: 14px; display: flex; gap: 2px; align-items: stretch; }
 .persona-bar .a { background: linear-gradient(180deg, #3f3f46, #2a2a30); border-radius: 2px 0 0 2px; min-width: 2px; }
-[data-theme="light"] .persona-bar .a { background: linear-gradient(180deg, #d4d4d0, #c4c4bf); }
+[data-theme="dark"] .persona-bar .a { background: linear-gradient(180deg, #3f3f46, #2a2a30); }
 .persona-bar .r { background: linear-gradient(180deg, #f87171, #ef4444); border-radius: 0 2px 2px 0; min-width: 2px; }
 .persona-count { font-family: var(--mono); font-size: 11px; color: var(--fg-2); text-align: right; }
 .persona-rate { font-family: var(--mono); font-size: 11px; text-align: right; }
@@ -671,12 +691,18 @@ a:hover { text-decoration: underline; }
 
 .field label .req { color: var(--red); margin-left: 3px; }
 
-/* Light theme overrides */
+/* Scaler 3.0: Light theme confirmation (matches :root defaults) */
 [data-theme="light"] {
-  --bg: #f8f9fb; --bg-1: #ffffff; --bg-2: #f1f3f7; --bg-3: #e8ecf2;
-  --bg-hover: #edf0f5;
-  --border: #e2e5ec; --border-2: #d4d9e3; --border-3: #c5ccd8;
-  --fg: #0f1117; --fg-2: #3d4352; --fg-3: #6b7280; --fg-4: #9ca3af;
+  --bg: #FCFCFC;
+  --bg-1: #FFFFFF;
+  --bg-2: #F6F6F6;
+  --bg-3: #EEEEEC;
+  --border: #CAC0C0;
+  --border-2: #D1D1D1;
+  --fg: #0B1529;
+  --fg-2: #3D4352;
+  --fg-3: #696969;
+  --fg-4: #848484;
 }
 
 /* ──────────────────────────────────────────────────────────────────────── */
@@ -688,7 +714,7 @@ html, body {
   font-feature-settings: "cv11", "ss01";
 }
 
-/* Premium gradient background for the dark theme */
+/* Subtle ambient gradient for dark theme only */
 [data-theme="dark"] body {
   background:
     radial-gradient(circle at 20% 0%, rgba(124,122,237,0.04) 0%, transparent 50%),
@@ -1370,5 +1396,159 @@ html, body {
 .pw-gate input:focus {
   outline: none;
   border-color: var(--indigo);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SCALER 3.0 REBRAND
+   Premium light-mode editorial design system.
+   Sharp corners · flat elevation · Clash Grotesk headings · Scaler blue.
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Clash Grotesk for display headings ── */
+.brand-title,
+.page-title,
+.card-head h3,
+.kpi-value,
+.sp-id,
+.settings-section-head h3 {
+  font-family: var(--display);
+  letter-spacing: -0.01em;
+}
+
+/* ── No rounded corners (containers, controls, badges) ── */
+.card,
+.btn,
+.btn-ghost,
+.btn.primary,
+.icon-btn,
+.nav-item,
+.cohort-picker,
+.cohort-btn,
+.cohort-dropdown,
+.cohort-row,
+.sel,
+.sel-menu,
+.sel-item,
+.crumb,
+.entity-menu,
+.entity-menu button,
+.compare-toggle button,
+.modal,
+.modal-head,
+.side-panel,
+.sp-learner,
+.sp-body-text,
+.ai-kv-block,
+.warning-box,
+.info-box,
+.tweaks,
+.toast,
+.type-badge,
+.pri-badge,
+.status-badge,
+.ph-chip,
+.flag-badge,
+.days-pill,
+.act-btn,
+.risk-pill,
+.chip,
+.rate-pill,
+.live-pill,
+.filter-bar select,
+.filter-bar input,
+.input,
+.textarea,
+.pwd-input,
+.pwd-card,
+.pw-gate,
+.settings-section,
+.mini-avatar,
+.brand-mark,
+.segmented,
+.segmented button,
+.reason-icon,
+.quote,
+.pwd-icon,
+.sel-menu,
+.cohort-row {
+  border-radius: 0 !important;
+}
+
+/* ── Flat elevation: no drop-shadows on containers ── */
+.card { box-shadow: none !important; }
+.modal { box-shadow: 0 8px 32px rgba(11, 21, 41, 0.1) !important; border-radius: 0 !important; }
+.side-panel { box-shadow: -2px 0 12px rgba(11, 21, 41, 0.06) !important; }
+.tweaks { box-shadow: 0 4px 16px rgba(11, 21, 41, 0.08) !important; }
+.pwd-card, .pw-gate, .settings-section { box-shadow: none !important; }
+
+/* ── Card hover: no border shift ── */
+.card:hover { border-color: var(--border-2) !important; }
+
+/* ── Brand mark: solid Scaler blue ── */
+.brand-mark {
+  background: #0055FF !important;
+  box-shadow: none !important;
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* ── Primary button: dark fill, sharp ── */
+.btn.primary {
+  background: #070D18 !important;
+  border-color: #070D18 !important;
+  color: #FCFCFC !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+.btn.primary:hover {
+  background: #0B1529 !important;
+  filter: none !important;
+}
+
+/* ── Active nav: Scaler blue accent ── */
+.nav-item.active {
+  background: var(--indigo-soft) !important;
+  border-color: var(--indigo-border) !important;
+  color: var(--indigo) !important;
+}
+.nav-item.active .ico { color: var(--indigo) !important; }
+
+/* ── KPI accent: left border strip instead of box-shadow ── */
+.kpi-cell { box-shadow: none !important; }
+.kpi-cell.good { border-left: 3px solid var(--green) !important; }
+.kpi-cell.bad  { border-left: 3px solid var(--red) !important; }
+.kpi-cell.warn { border-left: 3px solid var(--amber) !important; }
+
+/* ── Tabs: blue underline active state ── */
+.ph-tab.active {
+  color: var(--indigo) !important;
+  border-bottom-color: var(--indigo) !important;
+}
+
+/* ── Cohort compare toggle active ── */
+.compare-toggle button.on {
+  background: var(--indigo-soft) !important;
+  color: var(--indigo) !important;
+}
+
+/* ── Circular elements: keep 50% radius ── */
+.live-dot,
+.avatar,
+.history-dot,
+.history-dot.approved,
+.history-dot.rejected,
+.history-dot.pending {
+  border-radius: 50% !important;
+}
+
+/* ── Scrollbar: matches light theme ── */
+[data-theme="light"] ::-webkit-scrollbar-thumb,
+:root ::-webkit-scrollbar-thumb {
+  background: var(--border-2);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover,
+:root ::-webkit-scrollbar-thumb:hover {
+  background: var(--border-3);
 }
 

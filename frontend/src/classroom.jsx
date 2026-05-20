@@ -13,7 +13,7 @@ const CT = {
   amber: 'var(--amber)', amberBg: 'var(--amber-soft)',
   green: 'var(--green)', greenBg: 'var(--green-soft)',
   blue: 'var(--cyan)', blueBg: 'var(--cyan-soft)',
-  thead: 'var(--bg-2)', radius: 10,
+  thead: 'var(--bg-2)', radius: 0,
   font: "'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif",
 };
 
@@ -43,7 +43,7 @@ const CRCard = ({ children, title, subtitle, badge, accent, style = {} }) => (
           {subtitle && <div style={{ fontSize: 11, color: CT.txt3, marginTop: 2, fontStyle: 'italic' }}>{subtitle}</div>}
         </div>
         {badge != null && <span style={{ background: CT.redBg, color: CT.red, fontSize: 11, fontWeight: 700,
-          padding: '2px 8px', borderRadius: 10 }}>{badge}</span>}
+          padding: '2px 8px', borderRadius: 0 }}>{badge}</span>}
       </div>
     )}
     {children}
@@ -66,7 +66,7 @@ const CRFlag = ({ flag }) => {
   const s = flag === 'LOW' ? { bg: CT.redBg, color: CT.red }
     : flag === 'WATCH' ? { bg: CT.amberBg, color: CT.amber }
     : { bg: CT.greenBg, color: CT.green };
-  return <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 10, fontSize: 10,
+  return <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 0, fontSize: 10,
     fontWeight: 700, background: s.bg, color: s.color }}>{flag}</span>;
 };
 
@@ -119,7 +119,7 @@ function ClassroomPage({ cohort }) {
         <div style={{ fontSize: 32, marginBottom: 12 }}>{'\u26A0\uFE0F'}</div>
         Failed to load classroom data. Check backend.
         <div style={{ marginTop: 12 }}>
-          <button onClick={loadData} style={{ padding: '8px 18px', borderRadius: 8, border: 'none',
+          <button onClick={loadData} style={{ padding: '8px 18px', borderRadius: 0, border: 'none',
             background: CT.accent, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer',
             fontFamily: CT.font }}>Retry</button>
         </div>
@@ -201,11 +201,11 @@ function ClassroomPage({ cohort }) {
       <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
         <input type="text" placeholder="Search by instructor, batch, email, persona..."
           value={search} onChange={e => setSearch(e.target.value)}
-          style={{ flex: 1, minWidth: 280, padding: '10px 16px', borderRadius: 10,
+          style={{ flex: 1, minWidth: 280, padding: '10px 16px', borderRadius: 0,
             border: `1px solid ${CT.border}`, fontSize: 13, fontFamily: CT.font, outline: 'none',
             boxSizing: 'border-box', background: CT.card, color: CT.txt1 }} />
         <select value={batchFilter} onChange={e => setBatchFilter(e.target.value)}
-          style={{ padding: '10px 16px', borderRadius: 10, border: `1px solid ${CT.border}`,
+          style={{ padding: '10px 16px', borderRadius: 0, border: `1px solid ${CT.border}`,
             fontSize: 12, fontFamily: CT.font, background: CT.card, color: CT.txt1, cursor: 'pointer', outline: 'none' }}>
           <option value="all">All Batches</option>
           {allBatches.map(b => <option key={b} value={b}>{crShortBatch(b)}</option>)}
@@ -224,7 +224,7 @@ function ClassroomPage({ cohort }) {
             {t.label}
             {t.badge > 0 && (
               <span style={{ background: CT.red, color: '#fff', fontSize: 10, fontWeight: 700,
-                padding: '1px 6px', borderRadius: 10, minWidth: 16, textAlign: 'center' }}>{t.badge}</span>
+                padding: '1px 6px', borderRadius: 0, minWidth: 16, textAlign: 'center' }}>{t.badge}</span>
             )}
           </button>
         ))}
@@ -294,7 +294,7 @@ function ClassroomPage({ cohort }) {
                         <span style={{ fontSize: 11, color: CT.txt3, marginLeft: 8 }}>{instructorMap[batch]}</span>
                       )}
                     </div>
-                    <span style={{ padding: '2px 10px', borderRadius: 999, background: CT.redBg, color: CT.red,
+                    <span style={{ padding: '2px 10px', borderRadius: 0, background: CT.redBg, color: CT.red,
                       fontSize: 11, fontWeight: 700 }}>
                       {count} low rater{count > 1 ? 's' : ''}
                     </span>
@@ -489,7 +489,7 @@ function ClassroomPage({ cohort }) {
                                 avg <span style={{ fontWeight: 700, color: CT.red }}>{avgR}</span>
                               </span>
                             )}
-                            <span style={{ padding: '3px 12px', borderRadius: 999,
+                            <span style={{ padding: '3px 12px', borderRadius: 0,
                               background: CT.redBg, color: CT.red, fontSize: 11, fontWeight: 700 }}>
                               {lrs.length} low rater{lrs.length > 1 ? 's' : ''}
                             </span>
@@ -499,7 +499,7 @@ function ClassroomPage({ cohort }) {
                         {/* AI themes */}
                         {group && group.summary_bullets && group.summary_bullets.length > 0 && (
                           <div style={{ background: CT.accentBg, border: `1px solid ${CT.border}`,
-                            borderRadius: 8, padding: '10px 14px', marginBottom: 12 }}>
+                            borderRadius: 0, padding: '10px 14px', marginBottom: 12 }}>
                             <div style={{ fontSize: 10, fontWeight: 700, color: CT.accent,
                               textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
                               {'\u{1F4A1}'} Key themes from LSM notes
@@ -516,7 +516,7 @@ function ClassroomPage({ cohort }) {
                             <div key={li} style={{ display: 'flex', alignItems: 'flex-start', gap: 12,
                               background: CT.bg, border: `1px solid ${CT.border}`,
                               borderLeft: `3px solid ${lr.rating <= 1 ? '#991b1b' : lr.rating <= 2 ? CT.red : CT.amber}`,
-                              borderRadius: 8, padding: '10px 14px' }}>
+                              borderRadius: 0, padding: '10px 14px' }}>
 
                               {/* Rating bubble */}
                               <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
@@ -532,13 +532,13 @@ function ClassroomPage({ cohort }) {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
                                   <span style={{ fontSize: 12, fontWeight: 600, color: CT.txt1 }}>{lr.email}</span>
                                   {lr.persona && (
-                                    <span style={{ padding: '1px 8px', borderRadius: 10, background: CT.accentBg,
+                                    <span style={{ padding: '1px 8px', borderRadius: 0, background: CT.accentBg,
                                       color: CT.accent, fontSize: 10, fontWeight: 600, flexShrink: 0 }}>
                                       {crShortPersona(lr.persona)}
                                     </span>
                                   )}
                                   {lr.ctc && (
-                                    <span style={{ padding: '1px 8px', borderRadius: 10, background: CT.thead,
+                                    <span style={{ padding: '1px 8px', borderRadius: 0, background: CT.thead,
                                       color: CT.txt3, fontSize: 10, fontWeight: 500, flexShrink: 0 }}>
                                       {lr.ctc}
                                     </span>
@@ -738,7 +738,7 @@ function ClassroomPage({ cohort }) {
                             <span style={{ fontSize: 11, color: CT.txt4, marginLeft: 8 }}>{instructorMap[batch]}</span>
                           )}
                         </div>
-                        <span style={{ padding: '3px 12px', borderRadius: 999,
+                        <span style={{ padding: '3px 12px', borderRadius: 0,
                           background: 'var(--amber-soft)', color: CT.amber, fontSize: 11, fontWeight: 700 }}>
                           {learners.length} missed
                         </span>
@@ -751,7 +751,7 @@ function ClassroomPage({ cohort }) {
                             <div key={li} style={{ display: 'flex', alignItems: 'flex-start', gap: 12,
                               background: CT.bg, border: `1px solid ${CT.border}`,
                               borderLeft: `3px solid ${watchedRecording ? CT.green : CT.amber}`,
-                              borderRadius: 8, padding: '10px 14px' }}>
+                              borderRadius: 0, padding: '10px 14px' }}>
 
                               {/* Status bubble */}
                               <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
@@ -767,13 +767,13 @@ function ClassroomPage({ cohort }) {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
                                   <span style={{ fontSize: 12, fontWeight: 600, color: CT.txt1 }}>{m.email}</span>
                                   {m.persona && (
-                                    <span style={{ padding: '1px 8px', borderRadius: 10, background: CT.accentBg,
+                                    <span style={{ padding: '1px 8px', borderRadius: 0, background: CT.accentBg,
                                       color: CT.accent, fontSize: 10, fontWeight: 600, flexShrink: 0 }}>
                                       {crShortPersona(m.persona)}
                                     </span>
                                   )}
                                   {m.overall_att != null && (
-                                    <span style={{ padding: '1px 8px', borderRadius: 10,
+                                    <span style={{ padding: '1px 8px', borderRadius: 0,
                                       background: watchedRecording ? 'var(--green-soft)' : CT.thead,
                                       color: watchedRecording ? CT.green : CT.txt4,
                                       fontSize: 10, fontWeight: 500, flexShrink: 0 }}>
@@ -781,7 +781,7 @@ function ClassroomPage({ cohort }) {
                                     </span>
                                   )}
                                   {m.connect_status && (
-                                    <span style={{ padding: '1px 8px', borderRadius: 10, background: CT.thead,
+                                    <span style={{ padding: '1px 8px', borderRadius: 0, background: CT.thead,
                                       color: CT.txt3, fontSize: 10, flexShrink: 0 }}>
                                       {m.connect_status}
                                     </span>

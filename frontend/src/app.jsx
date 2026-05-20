@@ -454,7 +454,7 @@ function AnalyticsPage({ cohort, setCohort }) {
                   <div>
                     {/* AI Summary */}
                     <div style={{background:'var(--bg-1)',border:'1px solid var(--border)',
-                      borderRadius:10,padding:'18px 22px',marginBottom:16}}>
+                      borderRadius:0,padding:'18px 22px',marginBottom:16}}>
                       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
                         <div style={{fontSize:13,fontWeight:700,color:'var(--fg)'}}>AI Pattern Analysis</div>
                         {!reasonsAI && !reasonsAILoading && (
@@ -475,7 +475,7 @@ function AnalyticsPage({ cohort, setCohort }) {
                     {/* Category Breakdown */}
                     {reasonsData.categories?.length > 0 && (
                       <div style={{background:'var(--bg-1)',border:'1px solid var(--border)',
-                        borderRadius:10,padding:'18px 22px',marginBottom:16}}>
+                        borderRadius:0,padding:'18px 22px',marginBottom:16}}>
                         <div style={{fontSize:13,fontWeight:700,color:'var(--fg)',marginBottom:14}}>
                           Pain Point Categories <span style={{fontWeight:400,color:'var(--fg-4)',fontSize:11}}>({reasonsData.total} total)</span>
                         </div>
@@ -499,7 +499,7 @@ function AnalyticsPage({ cohort, setCohort }) {
                     )}
 
                     {/* Detailed Table */}
-                    <div style={{background:'var(--bg-1)',border:'1px solid var(--border)',borderRadius:10,overflow:'hidden'}}>
+                    <div style={{background:'var(--bg-1)',border:'1px solid var(--border)',borderRadius:0,overflow:'hidden'}}>
                       <div style={{padding:'14px 20px',borderBottom:'1px solid var(--border)',
                         display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                         <div style={{fontSize:13,fontWeight:700,color:'var(--fg)'}}>All Refund Cases</div>
@@ -526,7 +526,7 @@ function AnalyticsPage({ cohort, setCohort }) {
                                 <td style={{padding:'8px 12px',color:'var(--fg-2)',whiteSpace:'nowrap'}}>{r.psa?.split('@')[0]}</td>
                                 <td style={{padding:'8px 12px'}}>
                                   {r.category && (
-                                    <span style={{padding:'2px 8px',borderRadius:6,fontSize:10,fontWeight:600,
+                                    <span style={{padding:'2px 8px',borderRadius:0,fontSize:10,fontWeight:600,
                                       background:'var(--indigo-soft)',color:'var(--indigo)'}}>
                                       {r.category}
                                     </span>
@@ -676,7 +676,7 @@ function RequestsPage({ pendingCount, setPendingCount, cohort, setCohort }) {
 }
 
 // ── Tweaks ──────────────────────────────────────────────────────────────────
-const TWEAK_DEFAULTS = {theme:'dark',density:'comfortable',accent:'indigo'};
+const TWEAK_DEFAULTS = {theme:'light',density:'comfortable',accent:'indigo'};
 const ACCENTS = {
   indigo:  {base:'#7c7aed',deep:'#4f46e5',mid:'#6366f1',softA:'rgba(124,122,237,0.12)',bord:'rgba(124,122,237,0.28)'},
   violet:  {base:'#a78bfa',deep:'#7c3aed',mid:'#8b5cf6',softA:'rgba(167,139,250,0.14)',bord:'rgba(167,139,250,0.3)'},
@@ -792,11 +792,13 @@ function LoginGate({ onLogin }) {
     }}>
       <div style={{
         width: 380, background: 'var(--bg-1)', border: '1px solid var(--border)',
-        borderRadius: 14, padding: '36px 32px', boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+        borderRadius: 0, padding: '36px 32px', boxShadow: 'none',
       }}>
         <div style={{ marginBottom: 28, textAlign: 'center' }}>
-          <div style={{ fontSize: 28, marginBottom: 8 }}>🔐</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--fg)' }}>Scaler Ops Dashboard</div>
+          <div style={{ width: 36, height: 36, background: '#0055FF', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="white"><path d="M6 10V7a4 4 0 018 0v3M4 10h12v8H4z" fill="none" stroke="white" strokeWidth="1.6" /></svg>
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--fg)', fontFamily: 'var(--display)', letterSpacing: '-0.01em' }}>Scaler Ops Dashboard</div>
           <div style={{ fontSize: 12, color: 'var(--fg-3)', marginTop: 4 }}>Internal use only — please log in</div>
         </div>
         <div style={{ marginBottom: 14 }}>
@@ -807,7 +809,7 @@ function LoginGate({ onLogin }) {
           <input value={user} onChange={e => setUser(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handle()}
             placeholder="Enter username"
-            style={{ width: '100%', padding: '9px 12px', borderRadius: 8, fontSize: 13,
+            style={{ width: '100%', padding: '9px 12px', borderRadius: 0, fontSize: 13,
               border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--fg)',
               outline: 'none', boxSizing: 'border-box' }} />
         </div>
@@ -819,17 +821,18 @@ function LoginGate({ onLogin }) {
           <input value={pwd} onChange={e => setPwd(e.target.value)} type="password"
             onKeyDown={e => e.key === 'Enter' && handle()}
             placeholder="Enter password"
-            style={{ width: '100%', padding: '9px 12px', borderRadius: 8, fontSize: 13,
+            style={{ width: '100%', padding: '9px 12px', borderRadius: 0, fontSize: 13,
               border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--fg)',
               outline: 'none', boxSizing: 'border-box' }} />
         </div>
         {err && <div style={{ fontSize: 12, color: 'var(--red)', marginBottom: 14,
-          padding: '8px 12px', background: 'var(--red-soft)', borderRadius: 7 }}>{err}</div>}
+          padding: '8px 12px', background: 'var(--red-soft)', borderRadius: 0 }}>{err}</div>}
         <button onClick={handle} disabled={loading || !user || !pwd}
-          style={{ width: '100%', padding: '10px', borderRadius: 8, border: 'none',
-            background: loading ? 'var(--border)' : 'var(--indigo)', color: '#fff',
-            fontWeight: 700, fontSize: 14, cursor: loading ? 'default' : 'pointer' }}>
-          {loading ? 'Checking...' : 'Login'}
+          style={{ width: '100%', padding: '10px', borderRadius: 0, border: 'none',
+            background: loading ? 'var(--border)' : '#070D18', color: '#FCFCFC',
+            fontWeight: 600, fontSize: 13, cursor: loading ? 'default' : 'pointer',
+            fontFamily: 'var(--sans)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          {loading ? 'Checking...' : 'Log In'}
         </button>
         <div style={{ fontSize: 10, color: 'var(--fg-4)', textAlign: 'center', marginTop: 16 }}>
           Contact your manager for credentials

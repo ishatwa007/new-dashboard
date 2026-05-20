@@ -132,7 +132,7 @@ window.SettingsPage = ({ onBack }) => {
         </div>
         <div className="settings-body">
           <div style={{ background: 'var(--indigo-soft)', border: '1px solid var(--indigo-border)',
-            borderRadius: 8, padding: '14px 16px', marginBottom: 18 }}>
+            borderRadius: 0, padding: '14px 16px', marginBottom: 18 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--indigo)', marginBottom: 8 }}>
               How to add a new cohort tracker
             </div>
@@ -191,7 +191,7 @@ window.SettingsPage = ({ onBack }) => {
         </div>
         <div className="settings-body">
           {showAdd && (
-            <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+            <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: 0, padding: 14, marginBottom: 14 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr 1fr', gap: 10 }}>
                 <div className="field" style={{ margin: 0 }}>
                   <label>Cohort name</label>
@@ -268,7 +268,7 @@ window.SettingsPage = ({ onBack }) => {
               {Object.entries(users).map(([username, info]) => (
                 <div key={username} style={{ display: 'flex', alignItems: 'center', gap: 10,
                   padding: '10px 14px', background: 'var(--bg)', border: '1px solid var(--border)',
-                  borderRadius: 8, marginBottom: 8 }}>
+                  borderRadius: 0, marginBottom: 8 }}>
                   <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--indigo-soft)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 12, fontWeight: 700, color: 'var(--indigo)', flexShrink: 0 }}>
@@ -276,7 +276,7 @@ window.SettingsPage = ({ onBack }) => {
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg)' }}>{username}</div>
-                    <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 7px', borderRadius: 8,
+                    <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 7px', borderRadius: 0,
                       background: (ROLE_COLORS[info.role] || 'var(--fg-4)') + '22',
                       color: ROLE_COLORS[info.role] || 'var(--fg-4)' }}>
                       {ROLE_LABELS[info.role] || info.role}

@@ -12,7 +12,7 @@ const MT = {
   red: 'var(--red)', redBg: 'var(--red-soft)',
   amber: 'var(--amber)', amberBg: 'var(--amber-soft)',
   green: 'var(--green)', greenBg: 'var(--green-soft)',
-  radius: 10, radiusSm: 7,
+  radius: 0, radiusSm: 0,
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -79,7 +79,7 @@ const MAISummary = ({ bullets, loading }) => {
 
 // ── Tag ───────────────────────────────────────────────────────────────────────
 const MTag = ({ label, color, bg }) => (
-  <span style={{padding:'2px 8px',borderRadius:999,fontSize:10,fontWeight:700,
+  <span style={{padding:'2px 8px',borderRadius:0,fontSize:10,fontWeight:700,
     background:bg||MT.accentBg,color:color||MT.accent,whiteSpace:'nowrap'}}>
     {label}
   </span>
@@ -271,7 +271,7 @@ function MentorPage({ cohort }) {
             <div style={{fontSize:11,color:MT.txt4,marginTop:2}}>{person.email}</div>
           </div>
           <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
-            <span style={{padding:'4px 12px',borderRadius:999,fontSize:12,fontWeight:700,
+            <span style={{padding:'4px 12px',borderRadius:0,fontSize:12,fontWeight:700,
               background:person.no_show_count>=2?MT.redBg:MT.amberBg,
               color:person.no_show_count>=2?MT.red:MT.amber}}>
               {person.no_show_count} missed
@@ -303,11 +303,11 @@ function MentorPage({ cohort }) {
       <div style={{display:'flex',gap:10,marginBottom:20,alignItems:'center'}}>
         <input value={search} onChange={e=>setSearch(e.target.value)}
           placeholder="Search by name or email..."
-          style={{flex:1,maxWidth:300,padding:'7px 12px',borderRadius:8,
+          style={{flex:1,maxWidth:300,padding:'7px 12px',borderRadius:0,
             border:`1px solid ${MT.border}`,background:MT.card,color:MT.txt1,
             fontSize:13,outline:'none'}} />
         <button onClick={()=>{loadNS();loadLR();}}
-          style={{padding:'7px 14px',borderRadius:8,border:`1px solid ${MT.border}`,
+          style={{padding:'7px 14px',borderRadius:0,border:`1px solid ${MT.border}`,
             background:MT.card,color:MT.txt2,cursor:'pointer',fontSize:12,fontWeight:500}}>
           Refresh
         </button>
@@ -324,7 +324,7 @@ function MentorPage({ cohort }) {
               transition:'all 0.15s',fontFamily:'var(--sans)'}}>
             {t.icon} {t.label}
             {t.badge > 0 && (
-              <span style={{padding:'1px 7px',borderRadius:10,fontSize:10,fontWeight:700,
+              <span style={{padding:'1px 7px',borderRadius:0,fontSize:10,fontWeight:700,
                 background:t.id==='noshows'?MT.redBg:t.id==='repeats'?MT.redBg:MT.amberBg,
                 color:t.id==='noshows'?MT.red:t.id==='repeats'?MT.red:MT.amber}}>
                 {t.badge}
@@ -373,12 +373,12 @@ function MentorPage({ cohort }) {
                     <div style={{fontSize:11,color:MT.txt4}}>{p.email}</div>
                   </div>
                   <MTag label={p.isMentor?'Mentor':'Mentee'} color={MT.txt3} bg={MT.card2} />
-                  <span style={{padding:'3px 10px',borderRadius:999,fontSize:11,fontWeight:700,
+                  <span style={{padding:'3px 10px',borderRadius:0,fontSize:11,fontWeight:700,
                     background:MT.redBg,color:MT.red}}>
                     {p.no_show_count}× missed
                   </span>
                   <button onClick={()=>setTab(p.isMentor?'noshows':'noshows')}
-                    style={{padding:'4px 10px',borderRadius:6,border:`1px solid ${MT.border}`,
+                    style={{padding:'4px 10px',borderRadius:0,border:`1px solid ${MT.border}`,
                       background:MT.card,color:MT.accent,fontSize:11,cursor:'pointer',fontWeight:600}}>
                     View →
                   </button>
@@ -458,7 +458,7 @@ function MentorPage({ cohort }) {
               {id:'mentee', label:`Mentee  (${nsData?.mentee_noshows||0})`},
             ].map(f => (
               <button key={f.id} onClick={()=>setNsFilter(f.id)}
-                style={{padding:'6px 16px',borderRadius:999,fontSize:12,fontWeight:600,cursor:'pointer',
+                style={{padding:'6px 16px',borderRadius:0,fontSize:12,fontWeight:600,cursor:'pointer',
                   border:`1px solid ${nsFilter===f.id?MT.accent:MT.border}`,
                   background:nsFilter===f.id?MT.accentBg:MT.card,
                   color:nsFilter===f.id?MT.accent:MT.txt3,transition:'all 0.15s'}}>
@@ -540,7 +540,7 @@ function MentorPage({ cohort }) {
                       {learners.filter(l=>l.replies).length>0 && (
                         <MTag label={`💬 ${learners.filter(l=>l.replies).length} replied`} />
                       )}
-                      <span style={{padding:'3px 12px',borderRadius:999,fontSize:11,fontWeight:700,
+                      <span style={{padding:'3px 12px',borderRadius:0,fontSize:11,fontWeight:700,
                         background:MT.amberBg,color:MT.amber}}>
                         {learners.length}
                       </span>
@@ -586,7 +586,7 @@ function MentorPage({ cohort }) {
                                   <a href={lr.slack_url} target="_blank" rel="noreferrer"
                                     onClick={e=>e.stopPropagation()}
                                     style={{fontSize:10,color:MT.accent,textDecoration:'none',
-                                      padding:'2px 8px',borderRadius:6,
+                                      padding:'2px 8px',borderRadius:0,
                                       border:`1px solid ${MT.accentBorder}`,background:MT.accentBg}}>
                                     Slack ↗
                                   </a>
@@ -598,7 +598,7 @@ function MentorPage({ cohort }) {
                                 <MAISummary bullets={aiCache[lKey]} loading={aiLoading[lKey]} />
                                 {lr.replies && (
                                   <div style={{fontSize:12,color:MT.txt2,padding:'10px 14px',
-                                    background:MT.card2,borderRadius:8,lineHeight:1.6,
+                                    background:MT.card2,borderRadius:0,lineHeight:1.6,
                                     borderLeft:`3px solid ${MT.accent}`}}>
                                     {lr.replies}
                                   </div>

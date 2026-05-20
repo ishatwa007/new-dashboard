@@ -702,10 +702,10 @@ window.HierarchyFilter = ({ level, setLevel, showReasons }) => {
         <button key={l.id} onClick={() => setLevel(l.id)}
           className={"btn " + (level === l.id ? 'primary' : '')}
           style={{
-            padding:'6px 16px', fontSize:12, fontWeight:600, borderRadius:20,
+            padding:'6px 16px', fontSize:12, fontWeight:600, borderRadius:0,
             border: level === l.id ? '1px solid var(--indigo)' : '1px solid var(--border-2)',
-            background: level === l.id ? 'var(--indigo-soft)' : 'var(--bg-1)',
-            color: level === l.id ? 'var(--indigo)' : 'var(--fg-2)',
+            background: level === l.id ? '#070D18' : 'var(--bg-1)',
+            color: level === l.id ? '#FCFCFC' : 'var(--fg-2)',
             cursor:'pointer', fontFamily:'var(--sans)', transition:'all 0.15s',
           }}>
           {l.label}
