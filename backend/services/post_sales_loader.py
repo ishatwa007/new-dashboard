@@ -32,20 +32,21 @@ CLASSES_DATA_START = 2   # 0-indexed
 
 # Col mapping (0-based) based on actual Post Sales tracker layout
 C_EMAIL   = 1   # B = Email
-C_BATCH   = 9   # J = Batch (0-indexed, so column J is index 9)
-C_SEGMENT = 3   # D = Segment  
-C_PSA     = 4   # E = Primary Owner Email
-C_PAY     = 7   # H = Payment Status (since G is AVP, H is Payment Status)
-C_REFUND  = 8   # I = Refund Status
+C_SEGMENT = 3   # D = Segment
+C_PSA     = 4   # E = LSM / Primary Owner Email
+C_PAY     = 7   # H = Payment Status
+C_REFUND  = 9   # J = Refund Status (May has extra NBFC col pushing it to index 9)
+C_BATCH   = 10  # K = Batch
 
 # Per-class columns built dynamically from headers — see _build_class_cols()
+# April layout (fallback):
 CLASS_COLS = {
-    1: (12, 13, 14, 15, 16, 17),
-    2: (18, 19, 20, 21, 22, 23),
-    3: (24, 25, 26, 27, 28, 29),
-    4: (30, 31, 32, None, 33, 34),
-    5: (35, None, 36, 37, 44, 45),
-    6: (38, None, 39, 40, None, None),
+    1:  (13, 14, 15, 16, 17, 18),   # N, O, P, Q, R, S  (0-indexed, row2 headers)
+    2:  (19, 20, 21, 22, 23, 24),
+    3:  (25, 26, 27, 28, 29, 30),
+    4:  (31, 32, 33, 34, 35, None),
+    5:  (36, 37, 38, None, None, None),
+    6:  (38, 39, 40, None, None, None),
 }
 
 def _build_class_cols(headers: list) -> dict:
