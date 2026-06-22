@@ -29,7 +29,7 @@ AI_PROVIDER    = os.getenv("AI_PROVIDER", "openai" if OPENAI_API_KEY else "groq"
 OPENAI_URL   = "https://api.openai.com/v1/chat/completions"
 OPENAI_MODEL = "gpt-4o-mini"
 GROQ_URL     = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL   = "llama-3.1-8b-instant"
+GROQ_MODEL   = "gemma2-9b-it"   # 15k TPM — separate limit from reason_classifier
 
 _AI_CACHE_DIR = Path("classifier_cache_program")
 _AI_CACHE_DIR.mkdir(exist_ok=True)
@@ -191,7 +191,12 @@ def summarize_lsm_notes(notes_list: List[str], max_bullets: int = 4) -> List[str
         "If there is real content, return up to 3 bullet points under 15 words each. "
         "Start each bullet with a dash. No preamble, no numbering, no filler."
     )
-    answer = _groq_call(system, joined, max_tokens=200)
+
+    answer = None
+    try:
+        answer = _groq_call(system, joined, max_tokens=200)
+    except Exception as e:
+        log.warning(f"summarize_lsm_notes AI call failed: {e}")
 
     bullets = []
     if answer:
@@ -203,7 +208,7 @@ def summarize_lsm_notes(notes_list: List[str], max_bullets: int = 4) -> List[str
                 break
 
     if not bullets:
-        # Fallback: first 3 notes truncated
+        # Fallback: show raw notes so the UI always has something
         bullets = [n[:120] for n in clean[:3]]
 
     _cache_set(f"summary_{key}", {"bullets": bullets})
