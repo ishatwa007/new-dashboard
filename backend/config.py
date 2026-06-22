@@ -74,42 +74,60 @@ def get_google_creds():
     return creds
 
 
-# Cohort mapping: funnel cohort -> persona sheet tab name (exact match, case-sensitive)
-COHORT_SHEET_MAP = {
-    "july2025":        "Jul'25",
-    "august2025":      "Aug'25",
-    "september2025":   "Sep'25",
-    "october2025":     "Oct'25",
-    "november2025":    "Nov'25",
-    "december(1)2025": "Dec'25(1)",
-    "december(2)2025": "Dec'25(2)",
-    "january2026":     "Jan'26",
-    "february2026":    "Feb'26",
-    "march2026":       "Mar'26",
-    "april2026":       "Apr'26",
-    "may2026":         "May'26",
+# Cohort mapping: auto-generated from START_COHORT_MONTH up to current month.
+# Special one-off cohorts (e.g. Dec splits) are merged in via SPECIAL_COHORTS.
+# To add a split cohort like December(2), add it to SPECIAL_COHORTS below.
+# No manual updates needed when a new month starts.
+
+import calendar
+from datetime import date
+
+_START_YEAR  = 2025
+_START_MONTH = 7   # July 2025
+
+# Special cohorts inserted immediately after their base month.
+# key = base cohort_id they follow, value = list of (cohort_id, sheet_tab, label)
+_SPECIAL_COHORTS: dict = {
+    "december2025": [
+        ("december(1)2025", "Dec'25(1)", "December 2025 (1)"),
+        ("december(2)2025", "Dec'25(2)", "December 2025 (2)"),
+    ],
 }
 
-COHORT_LABELS = {
-    "july2025":        "July 2025",
-    "august2025":      "August 2025",
-    "september2025":   "September 2025",
-    "october2025":     "October 2025",
-    "november2025":    "November 2025",
-    "december(1)2025": "December 2025 (1)",
-    "december(2)2025": "December 2025 (2)",
-    "january2026":     "January 2026",
-    "february2026":    "February 2026",
-    "march2026":       "March 2026",
-    "april2026":       "April 2026",
-    "may2026":         "May 2026",
-}
+def _build_cohort_maps():
+    today = date.today()
+    sheet_map = {}
+    labels    = {}
+    order     = []
 
-COHORT_ORDER = [
-    "july2025", "august2025", "september2025", "october2025",
-    "november2025", "december(1)2025", "december(2)2025",
-    "january2026", "february2026", "march2026", "april2026", "may2026",
-]
+    y, m = _START_YEAR, _START_MONTH
+    while (y, m) <= (today.year, today.month):
+        month_name  = calendar.month_name[m]          # "July"
+        month_abbr  = calendar.month_abbr[m]          # "Jul"
+        year_2d     = str(y)[-2:]                     # "25"
+        cohort_id   = f"{month_name.lower()}{y}"      # "july2025"
+        tab_name    = f"{month_abbr}'{year_2d}"       # "Jul'25"
+        label       = f"{month_name} {y}"             # "July 2025"
+
+        # If this month has special splits, skip the plain entry and use splits
+        if cohort_id in _SPECIAL_COHORTS:
+            for split_id, split_tab, split_label in _SPECIAL_COHORTS[cohort_id]:
+                sheet_map[split_id] = split_tab
+                labels[split_id]    = split_label
+                order.append(split_id)
+        else:
+            sheet_map[cohort_id] = tab_name
+            labels[cohort_id]    = label
+            order.append(cohort_id)
+
+        m += 1
+        if m > 12:
+            m = 1
+            y += 1
+
+    return sheet_map, labels, order
+
+COHORT_SHEET_MAP, COHORT_LABELS, COHORT_ORDER = _build_cohort_maps()
 
 # Canonical refund reason categories (AI classifies into these)
 REASON_CATEGORIES = [
