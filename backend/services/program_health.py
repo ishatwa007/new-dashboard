@@ -170,17 +170,18 @@ def classify_incident_bucket(incident_type: str, details: str) -> str:
     return bucket
 
 
-def summarize_lsm_notes(notes_list: List[str], max_bullets: int = 4) -> List[str]:
-    """Summarize a list of LSM free-text notes into bullet themes via Groq."""
+def summarize_lsm_notes(notes_list: List[str], max_bullets: int = 4) -> tuple:
+    """Summarize LSM notes into bullet themes. Returns (bullets, ai_worked).
+    ai_worked=False means AI failed and bullets are raw notes as fallback."""
     clean = [n.strip() for n in notes_list if n and n.strip() and n.strip() != "--"]
     if not clean:
-        return []
+        return [], False
 
     joined = "\n".join(f"- {n[:200]}" for n in clean[:12])
     key = hashlib.md5(joined.encode()).hexdigest()
     cached = _cache_get(f"summary_{key}")
     if cached:
-        return cached.get("bullets", [])
+        return cached.get("bullets", []), cached.get("ai_used", False)
 
     system = (
         "You are an ops analyst reviewing session notes. "
@@ -193,8 +194,11 @@ def summarize_lsm_notes(notes_list: List[str], max_bullets: int = 4) -> List[str
     )
 
     answer = None
+    ai_worked = False
     try:
         answer = _groq_call(system, joined, max_tokens=200)
+        if answer:
+            ai_worked = True
     except Exception as e:
         log.warning(f"summarize_lsm_notes AI call failed: {e}")
 
@@ -208,11 +212,12 @@ def summarize_lsm_notes(notes_list: List[str], max_bullets: int = 4) -> List[str
                 break
 
     if not bullets:
-        # Fallback: show raw notes so the UI always has something
+        # Fallback: raw notes so the UI always has something
         bullets = [n[:120] for n in clean[:3]]
+        ai_worked = False
 
-    _cache_set(f"summary_{key}", {"bullets": bullets})
-    return bullets
+    _cache_set(f"summary_{key}", {"bullets": bullets, "ai_used": ai_worked})
+    return bullets, ai_worked
 
 
 def group_low_raters_by_batch(low_raters: List[Dict]) -> List[Dict]:
@@ -256,13 +261,14 @@ def group_low_raters_by_batch(low_raters: List[Dict]) -> List[Dict]:
     result = []
     for gkey, g in groups.items():
         avg = round(sum(g["ratings"]) / len(g["ratings"]), 2) if g["ratings"] else None
-        summary = summarize_lsm_notes(g["notes"])
+        bullets, ai_worked = summarize_lsm_notes(g["notes"])
         result.append({
             "batch": g["batch"],
             "class_num": g["class_num"],
             "count": g["count"],
             "avg_rating": avg,
-            "summary_bullets": summary,
+            "summary_bullets": bullets,
+            "ai_summary": ai_worked,
             "learners": sorted(g["learners"], key=lambda x: x["rating"]),
         })
 

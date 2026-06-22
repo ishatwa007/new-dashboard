@@ -506,13 +506,17 @@ function ClassroomPage({ cohort }) {
                           </div>
                         </div>
 
-                        {/* AI themes */}
+                        {/* AI themes / fallback notes */}
                         {group && group.summary_bullets && group.summary_bullets.length > 0 && (
-                          <div style={{ background: CT.accentBg, border: `1px solid ${CT.border}`,
+                          <div style={{ background: group.ai_summary === false ? CT.thead : CT.accentBg,
+                            border: `1px solid ${CT.border}`,
                             borderRadius: 0, padding: '10px 14px', marginBottom: 12 }}>
-                            <div style={{ fontSize: 10, fontWeight: 700, color: CT.accent,
+                            <div style={{ fontSize: 10, fontWeight: 700,
+                              color: group.ai_summary === false ? CT.txt3 : CT.accent,
                               textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
-                              {'\u{1F4A1}'} Key themes from LSM notes
+                              {group.ai_summary === false
+                                ? '\u26A0\uFE0F AI unavailable \u2014 showing raw notes'
+                                : '\u{1F4A1} Key themes from LSM notes'}
                             </div>
                             <ul style={{ margin: 0, paddingLeft: 18, color: CT.txt2, fontSize: 12, lineHeight: 1.7 }}>
                               {group.summary_bullets.map((b, bii) => <li key={bii}>{b}</li>)}
