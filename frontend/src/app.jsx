@@ -38,6 +38,7 @@ const COHORT_MAP = {
   'aug25': 'august2025',
   'jul25': 'july2025',
   'may26': 'may2026',
+  'jun26': 'june2026',
 };
 const toApiId = (id) => COHORT_MAP[id] || id;
 
@@ -177,31 +178,44 @@ function AnalyticsPage({ cohort, setCohort }) {
     }).catch(()=>{});
   }, []);
 
-  const loadData = useCallback(async (cohortId) => {
-    setLoading(true); setError(null);
+  const _retryTimer = useRef(null);
+
+  const loadData = useCallback(async (cohortId, attempt = 0) => {
+    if (attempt === 0) { setLoading(true); setError(null); }
     const apiId = toApiId(cohortId);
     window._currentCohortId = apiId;
     window._lastApiId = apiId;
-    console.log('[App] Loading:', apiId);
+    console.log('[App] Loading:', apiId, 'attempt:', attempt);
     try {
       const [apiRes, psaRes] = await Promise.allSettled([
         window.API.getAnalytics(apiId),
         window.API.getPSAs(apiId),
       ]);
-      const api  = apiRes.status  === 'fulfilled' ? apiRes.value  : null;
-      const psaD = psaRes.status  === 'fulfilled' ? psaRes.value  : null;
+      const api  = apiRes.status === 'fulfilled' ? apiRes.value  : null;
+      const psaD = psaRes.status === 'fulfilled' ? psaRes.value  : null;
 
       if (api) {
+        setError(null);
         const t = transformAnalytics(api);
         if (t) { setLiveData(t); setCohortSize(t.kpis.sales); }
+        setLoading(false);
+      } else if (attempt < 2) {
+        const secs = attempt === 0 ? 20 : 30;
+        setError('Backend is warming up — auto-retrying in ' + secs + 's (' + (attempt + 1) + '/2)');
+        setLoading(false);
+        if (_retryTimer.current) clearTimeout(_retryTimer.current);
+        _retryTimer.current = setTimeout(() => loadData(cohortId, attempt + 1), secs * 1000);
+        return;
       } else {
-        setError('Backend unreachable — check uvicorn is running on port 8000');
+        setError('Backend did not respond after 2 retries. Click Retry in ~30 seconds.');
+        setLoading(false);
       }
       if (psaD?.psas?.length > 0) setLivePSAs(psaD.psas);
     } catch(e) {
       setError(e.message);
+      setLoading(false);
       console.error('[App]', e);
-    } finally { setLoading(false); }
+    }
   }, []);
 
   useEffect(() => {
