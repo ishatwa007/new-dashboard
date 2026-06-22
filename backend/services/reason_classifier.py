@@ -154,17 +154,43 @@ def _groq_classify(text: str) -> Optional[str]:
         return None
 
 
+import time
+
+# Throttle: track last Groq call time to stay under 6000 TPM
+# Each call uses ~300 tokens. 6000 TPM / 300 = 20 calls/min max = 3s between calls.
+_last_groq_call: float = 0.0
+_GROQ_MIN_INTERVAL = 3.0  # seconds between calls
+
+
 def classify_reason(text: str) -> str:
+    """Classify a refund reason. Keyword first, Groq only for ambiguous (Other) cases."""
     if not text or not text.strip():
         return "Other"
 
+    # Check cache first
     cached = _get_cached(text)
     if cached:
         return cached
 
+    # Keyword classifier handles ~85% of cases correctly
+    keyword_result = _keyword_classify(text)
+
+    # Only call Groq when keyword can't decide (returns Other)
+    if keyword_result != "Other":
+        _set_cache(text, keyword_result)
+        return keyword_result
+
+    # Groq for ambiguous cases — throttled to stay under TPM limit
+    global _last_groq_call
+    now = time.time()
+    gap = now - _last_groq_call
+    if gap < _GROQ_MIN_INTERVAL:
+        time.sleep(_GROQ_MIN_INTERVAL - gap)
+    _last_groq_call = time.time()
+
     category = _groq_classify(text)
     if not category:
-        category = _keyword_classify(text)
+        category = "Other"
 
     _set_cache(text, category)
     return category
