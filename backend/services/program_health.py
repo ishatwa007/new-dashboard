@@ -191,7 +191,7 @@ def summarize_lsm_notes(notes_list: List[str], max_bullets: int = 4) -> List[str
         "If there is real content, return up to 3 bullet points under 15 words each. "
         "Start each bullet with a dash. No preamble, no numbering, no filler."
     )
-    answer = _groq_call(system, user, max_tokens=200)
+    answer = _groq_call(system, joined, max_tokens=200)
 
     bullets = []
     if answer:

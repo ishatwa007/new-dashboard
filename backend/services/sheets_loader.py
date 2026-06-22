@@ -2,6 +2,7 @@
 sheets_loader.py - Load Funnel and Persona sheets from Google
 Tries multiple tab names including "Raw" (used in LSM sheet).
 """
+import time
 import logging
 import gspread
 import pandas as pd
@@ -28,11 +29,22 @@ FUNNEL_TAB_CANDIDATES = [
     "Funnel",
 ]
 
+# Singleton gspread client (service account tokens don't expire like user tokens)
+_gc_instance = None
+
+# Persona sheet TTL cache: cohort_id -> (loaded_at, DataFrame)
+_persona_cache: dict = {}
+_PERSONA_TTL = 900  # 15 minutes
+
 
 def _get_client() -> gspread.Client:
-    creds_dict = get_google_creds()
-    creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
-    return gspread.authorize(creds)
+    global _gc_instance
+    if _gc_instance is None:
+        creds_dict = get_google_creds()
+        creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+        _gc_instance = gspread.authorize(creds)
+        logger.info("gspread client created (singleton)")
+    return _gc_instance
 
 
 def load_funnel_df() -> pd.DataFrame:
@@ -69,7 +81,15 @@ def load_funnel_df() -> pd.DataFrame:
 
 
 def load_persona_sheet(cohort_id: str) -> pd.DataFrame:
-    """Load monthly tracking sheet for a cohort. Tries multiple tab name variants."""
+    """Load monthly tracking sheet for a cohort. Tries multiple tab name variants.
+    Results are cached for _PERSONA_TTL seconds to avoid repeated API calls."""
+
+    # Return from cache if fresh
+    cached = _persona_cache.get(cohort_id)
+    if cached and (time.time() - cached[0]) < _PERSONA_TTL:
+        logger.info(f"Persona cache hit for {cohort_id}")
+        return cached[1]
+
     sheet_tab = COHORT_SHEET_MAP.get(cohort_id)
     if not sheet_tab:
         logger.warning(f"No persona sheet mapped for cohort: {cohort_id}")
@@ -104,11 +124,15 @@ def load_persona_sheet(cohort_id: str) -> pd.DataFrame:
         if ws is None:
             all_tabs = [w.title for w in sh.worksheets()]
             logger.warning(f"Persona tab not found. Tried {variants}. Available: {all_tabs}")
-            return pd.DataFrame()
+            empty = pd.DataFrame()
+            _persona_cache[cohort_id] = (time.time(), empty)
+            return empty
 
         data = ws.get_all_values()
         if not data or len(data) < 2:
-            return pd.DataFrame()
+            empty = pd.DataFrame()
+            _persona_cache[cohort_id] = (time.time(), empty)
+            return empty
 
         headers = data[0]
         rows    = data[1:]
@@ -117,6 +141,7 @@ def load_persona_sheet(cohort_id: str) -> pd.DataFrame:
         cleaned = [clean_persona_row(row, raw_df) for _, row in raw_df.iterrows()]
         df = pd.DataFrame([r for r in cleaned if r.get("email")])
         logger.info(f"Persona sheet {matched_tab}: {len(df)} rows after cleaning")
+        _persona_cache[cohort_id] = (time.time(), df)
         return df
     except Exception as e:
         logger.error(f"Failed to load persona sheet {sheet_tab}: {e}")

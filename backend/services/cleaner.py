@@ -146,7 +146,24 @@ def normalise_cohort_id(raw: Any) -> Optional[str]:
     s = clean_str(raw)
     if not s:
         return None
-    return s.lower().strip()
+    # Strip spaces so "June 2026" -> "june2026", "May 2026" -> "may2026"
+    return s.lower().strip().replace(" ", "")
+
+
+_PROG_NORMALIZE = {
+    "academy":  "Academy",
+    "dsml":     "DSML",
+    "aiml":     "AIML",
+    "devops":   "Devops",
+    "other":    "Other",
+}
+
+
+def normalise_program(val: Any) -> Optional[str]:
+    s = clean_str(val)
+    if not s:
+        return None
+    return _PROG_NORMALIZE.get(s.lower().strip(), s)
 
 
 def clean_funnel_row(row: pd.Series) -> dict:
@@ -155,8 +172,8 @@ def clean_funnel_row(row: pd.Series) -> dict:
         "cohort_id":         normalise_cohort_id(cohort_raw),
         "user_id":           clean_str(row.get("User Id")),
         "email":             clean_email(row.get("Email")),
-        "intake_program":    clean_str(row.get("Intake Program")),
-        "current_program":   clean_str(row.get("Current Program")),
+        "intake_program":    normalise_program(row.get("Intake Program")),
+        "current_program":   normalise_program(row.get("Current Program")),
         "persona":           clean_str(row.get("Persona")),
         "lead_persona":      clean_str(row.get("Lead Persona")),
         "ctc":               clean_str(row.get("Ctc")),
